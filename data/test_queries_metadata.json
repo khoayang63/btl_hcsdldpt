@@ -1,0 +1,202 @@
+[
+  {
+    "filename": "query_tomato_88_JPG.rf.0017de08a7fa8c9655db5a382795fcb4.jpg",
+    "category": "Tomato",
+    "filepath": "data\\test_queries\\query_tomato_88_JPG.rf.0017de08a7fa8c9655db5a382795fcb4.jpg"
+  },
+  {
+    "filename": "query_tomato_7_JPG.rf.046a54913b238907b87d7ce9a73a7f01.jpg",
+    "category": "Tomato",
+    "filepath": "data\\test_queries\\query_tomato_7_JPG.rf.046a54913b238907b87d7ce9a73a7f01.jpg"
+  },
+  {
+    "filename": "query_tomato_382_JPG.rf.060de2b805954848360bf56664538da1.jpg",
+    "category": "Tomato",
+    "filepath": "data\\test_queries\\query_tomato_382_JPG.rf.060de2b805954848360bf56664538da1.jpg"
+  },
+  {
+    "filename": "query_tomato_641_JPG.rf.070669b0c3d7bc4474e748caa161b5b2.jpg",
+    "category": "Tomato",
+    "filepath": "data\\test_queries\\query_tomato_641_JPG.rf.070669b0c3d7bc4474e748caa161b5b2.jpg"
+  },
+  {
+    "filename": "query_tomato_2_JPG.rf.0b1beb1ee707358b850f42191c4a6ca9.jpg",
+    "category": "Tomato",
+    "filepath": "data\\test_queries\\query_tomato_2_JPG.rf.0b1beb1ee707358b850f42191c4a6ca9.jpg"
+  },
+  {
+    "filename": "query_grape_959_JPG.rf.001ce5aeecde1f7778f58587500d95d4.jpg",
+    "category": "Grape",
+    "filepath": "data\\test_queries\\query_grape_959_JPG.rf.001ce5aeecde1f7778f58587500d95d4.jpg"
+  },
+  {
+    "filename": "query_grape_698_JPG.rf.04abf35651b961528ce0df3cb7c3eabe.jpg",
+    "category": "Grape",
+    "filepath": "data\\test_queries\\query_grape_698_JPG.rf.04abf35651b961528ce0df3cb7c3eabe.jpg"
+  },
+  {
+    "filename": "query_grape_599_JPG.rf.04083f3d2afc156e159e3c39a693f218.jpg",
+    "category": "Grape",
+    "filepath": "data\\test_queries\\query_grape_599_JPG.rf.04083f3d2afc156e159e3c39a693f218.jpg"
+  },
+  {
+    "filename": "query_grape_777_JPG.rf.0c551880a5de8f54314e0c608d00d70d.jpg",
+    "category": "Grape",
+    "filepath": "data\\test_queries\\query_grape_777_JPG.rf.0c551880a5de8f54314e0c608d00d70d.jpg"
+  },
+  {
+    "filename": "query_grape_956_JPG.rf.1a362b56e3e6660886f8a6638b524562.jpg",
+    "category": "Grape",
+    "filepath": "data\\test_queries\\query_grape_956_JPG.rf.1a362b56e3e6660886f8a6638b524562.jpg"
+  },
+  {
+    "filename": "query_peach_972_JPG.rf.002e99a8a33e0d440e2a38387df09eb1.jpg",
+    "category": "Peach",
+    "filepath": "data\\test_queries\\query_peach_972_JPG.rf.002e99a8a33e0d440e2a38387df09eb1.jpg"
+  },
+  {
+    "filename": "query_peach_314_JPG.rf.005e500762499fcd3a92f9aafbe00962.jpg",
+    "category": "Peach",
+    "filepath": "data\\test_queries\\query_peach_314_JPG.rf.005e500762499fcd3a92f9aafbe00962.jpg"
+  },
+  {
+    "filename": "query_peach_581_JPG.rf.035d8497f56fd1e716c8cad1f81491a9.jpg",
+    "category": "Peach",
+    "filepath": "data\\test_queries\\query_peach_581_JPG.rf.035d8497f56fd1e716c8cad1f81491a9.jpg"
+  },
+  {
+    "filename": "query_peach_19_JPG.rf.078f8e82de2cc9a2ff1b746c474278bd.jpg",
+    "category": "Peach",
+    "filepath": "data\\test_queries\\query_peach_19_JPG.rf.078f8e82de2cc9a2ff1b746c474278bd.jpg"
+  },
+  {
+    "filename": "query_peach_170_JPG.rf.0903687a086b7a3c0056f20149ac3283.jpg",
+    "category": "Peach",
+    "filepath": "data\\test_queries\\query_peach_170_JPG.rf.0903687a086b7a3c0056f20149ac3283.jpg"
+  },
+  {
+    "filename": "query_apple_346_JPG.rf.005ea33ad3c064ee5eb4f712ed3d76aa.jpg",
+    "category": "Apple",
+    "filepath": "data\\test_queries\\query_apple_346_JPG.rf.005ea33ad3c064ee5eb4f712ed3d76aa.jpg"
+  },
+  {
+    "filename": "query_apple_285_JPG.rf.0311fcc68bad7d9987ffa6ec576cb9c7.jpg",
+    "category": "Apple",
+    "filepath": "data\\test_queries\\query_apple_285_JPG.rf.0311fcc68bad7d9987ffa6ec576cb9c7.jpg"
+  },
+  {
+    "filename": "query_apple_971_JPG.rf.050852bcf5abc26909171f049dda18bd.jpg",
+    "category": "Apple",
+    "filepath": "data\\test_queries\\query_apple_971_JPG.rf.050852bcf5abc26909171f049dda18bd.jpg"
+  },
+  {
+    "filename": "query_apple_690_JPG.rf.095d7820f858a175004c02a23b673397.jpg",
+    "category": "Apple",
+    "filepath": "data\\test_queries\\query_apple_690_JPG.rf.095d7820f858a175004c02a23b673397.jpg"
+  },
+  {
+    "filename": "query_apple_441_JPG.rf.0b64200f7e46c72f643d24aac257b6fe.jpg",
+    "category": "Apple",
+    "filepath": "data\\test_queries\\query_apple_441_JPG.rf.0b64200f7e46c72f643d24aac257b6fe.jpg"
+  },
+  {
+    "filename": "query_strawberry_14_JPG.rf.012eee766d51e349eebee4b0df17a0be.jpg",
+    "category": "Strawberry",
+    "filepath": "data\\test_queries\\query_strawberry_14_JPG.rf.012eee766d51e349eebee4b0df17a0be.jpg"
+  },
+  {
+    "filename": "query_strawberry_683_JPG.rf.02862f36f5d567963238fc608bd7ddb8.jpg",
+    "category": "Strawberry",
+    "filepath": "data\\test_queries\\query_strawberry_683_JPG.rf.02862f36f5d567963238fc608bd7ddb8.jpg"
+  },
+  {
+    "filename": "query_strawberry_907_JPG.rf.0365c982f9a5638f79d43682b06a39c9.jpg",
+    "category": "Strawberry",
+    "filepath": "data\\test_queries\\query_strawberry_907_JPG.rf.0365c982f9a5638f79d43682b06a39c9.jpg"
+  },
+  {
+    "filename": "query_strawberry_518_JPG.rf.073d029e02a0573f19ff172026109ea5.jpg",
+    "category": "Strawberry",
+    "filepath": "data\\test_queries\\query_strawberry_518_JPG.rf.073d029e02a0573f19ff172026109ea5.jpg"
+  },
+  {
+    "filename": "query_strawberry_750_JPG.rf.0877dba66c0cf14114dde6c774a8a4af.jpg",
+    "category": "Strawberry",
+    "filepath": "data\\test_queries\\query_strawberry_750_JPG.rf.0877dba66c0cf14114dde6c774a8a4af.jpg"
+  },
+  {
+    "filename": "query_pepper_79_JPG.rf.0152001c32a84fd47d8c0e61e465d01b.jpg",
+    "category": "Pepper",
+    "filepath": "data\\test_queries\\query_pepper_79_JPG.rf.0152001c32a84fd47d8c0e61e465d01b.jpg"
+  },
+  {
+    "filename": "query_pepper_300_JPG.rf.02157baf00f4718631e65d763f236e45.jpg",
+    "category": "Pepper",
+    "filepath": "data\\test_queries\\query_pepper_300_JPG.rf.02157baf00f4718631e65d763f236e45.jpg"
+  },
+  {
+    "filename": "query_pepper_252_JPG.rf.085eeb5392cf08331f95503f72f02e97.jpg",
+    "category": "Pepper",
+    "filepath": "data\\test_queries\\query_pepper_252_JPG.rf.085eeb5392cf08331f95503f72f02e97.jpg"
+  },
+  {
+    "filename": "query_pepper_251_JPG.rf.07ed6c17067db4df0aae3b03bb95995f.jpg",
+    "category": "Pepper",
+    "filepath": "data\\test_queries\\query_pepper_251_JPG.rf.07ed6c17067db4df0aae3b03bb95995f.jpg"
+  },
+  {
+    "filename": "query_pepper_591_JPG.rf.0cc1435c16276ab01d99601380d4262a.jpg",
+    "category": "Pepper",
+    "filepath": "data\\test_queries\\query_pepper_591_JPG.rf.0cc1435c16276ab01d99601380d4262a.jpg"
+  },
+  {
+    "filename": "query_cherry_63_JPG.rf.0185dce636fe188dd3ec590c79f8a26b.jpg",
+    "category": "Cherry",
+    "filepath": "data\\test_queries\\query_cherry_63_JPG.rf.0185dce636fe188dd3ec590c79f8a26b.jpg"
+  },
+  {
+    "filename": "query_cherry_595_JPG.rf.06865542c58d73e8e689bcd4ead27691.jpg",
+    "category": "Cherry",
+    "filepath": "data\\test_queries\\query_cherry_595_JPG.rf.06865542c58d73e8e689bcd4ead27691.jpg"
+  },
+  {
+    "filename": "query_cherry_171_JPG.rf.06008a641c0ecc9c9aa8efba176247fd.jpg",
+    "category": "Cherry",
+    "filepath": "data\\test_queries\\query_cherry_171_JPG.rf.06008a641c0ecc9c9aa8efba176247fd.jpg"
+  },
+  {
+    "filename": "query_cherry_866_JPG.rf.05cf802e58bda5e9de3e041b48173fd7.jpg",
+    "category": "Cherry",
+    "filepath": "data\\test_queries\\query_cherry_866_JPG.rf.05cf802e58bda5e9de3e041b48173fd7.jpg"
+  },
+  {
+    "filename": "query_cherry_410_JPG.rf.0719b3c096f58b1bd8284f27bbe4e19f.jpg",
+    "category": "Cherry",
+    "filepath": "data\\test_queries\\query_cherry_410_JPG.rf.0719b3c096f58b1bd8284f27bbe4e19f.jpg"
+  },
+  {
+    "filename": "query_potato_513_JPG.rf.048cc7c7e48ce096bb1a9ee6575d53bd.jpg",
+    "category": "Potato",
+    "filepath": "data\\test_queries\\query_potato_513_JPG.rf.048cc7c7e48ce096bb1a9ee6575d53bd.jpg"
+  },
+  {
+    "filename": "query_potato_291_JPG.rf.0a237be2abada3f7abf21b8dbb1cd32e.jpg",
+    "category": "Potato",
+    "filepath": "data\\test_queries\\query_potato_291_JPG.rf.0a237be2abada3f7abf21b8dbb1cd32e.jpg"
+  },
+  {
+    "filename": "query_potato_3_JPG.rf.095b14ec7da94b6c6daeb7398fd438b1.jpg",
+    "category": "Potato",
+    "filepath": "data\\test_queries\\query_potato_3_JPG.rf.095b14ec7da94b6c6daeb7398fd438b1.jpg"
+  },
+  {
+    "filename": "query_potato_451_JPG.rf.0b2d0ed1f9966542c2925b210a528112.jpg",
+    "category": "Potato",
+    "filepath": "data\\test_queries\\query_potato_451_JPG.rf.0b2d0ed1f9966542c2925b210a528112.jpg"
+  },
+  {
+    "filename": "query_potato_586_JPG.rf.0b055ee0a371b81b42135abcab23d047.jpg",
+    "category": "Potato",
+    "filepath": "data\\test_queries\\query_potato_586_JPG.rf.0b055ee0a371b81b42135abcab23d047.jpg"
+  }
+]

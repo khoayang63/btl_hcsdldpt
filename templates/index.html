@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaf CBIR — Truy Vấn Ảnh Lá Cây</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-deep: #080c14;
+            --bg-card: #0d1520;
+            --bg-elevated: #131d2e;
+            --border: #1c2d42;
+            --border-active: #2dd4bf;
+            --accent: #2dd4bf;
+            --accent-dim: #2dd4bf44;
+            --gold: #f59e0b;
+            --rose: #fb7185;
+            --sky: #38bdf8;
+            --violet: #a78bfa;
+            --text: #e0e7ef;
+            --text-dim: #64748b;
+            --text-muted: #3e5068;
+            --font-display: 'DM Serif Display', Georgia, serif;
+            --font-body: 'Space Grotesk', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-deep);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ─── HEADER ─── */
+        .hero {
+            position: relative;
+            padding: 48px 40px 40px;
+            text-align: center;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse 80% 60% at 50% 0%, #2dd4bf12 0%, transparent 70%),
+                        radial-gradient(ellipse 50% 80% at 80% 20%, #a78bfa08 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .hero h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 4vw, 3.2rem);
+            color: var(--text);
+            letter-spacing: -0.02em;
+            position: relative;
+        }
+        .hero h1 span { color: var(--accent); }
+        .hero .subtitle {
+            font-size: 0.95rem;
+            color: var(--text-dim);
+            margin-top: 8px;
+            font-weight: 400;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            position: relative;
+        }
+        .hero .db-badge {
+            display: inline-block;
+            margin-top: 14px;
+            padding: 5px 16px;
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-family: var(--font-mono);
+            position: relative;
+        }
+        .hero .db-badge b { color: var(--accent); }
+
+        /* ─── LAYOUT ─── */
+        .container { max-width: 1520px; margin: 0 auto; padding: 0 32px 60px; }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 28px;
+            align-items: start;
+        }
+
+        /* ─── CARDS ─── */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+        }
+        .panel-title {
+            font-family: var(--font-body);
+            font-weight: 600;
+            font-size: 0.82rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 18px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .panel-title .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            flex-shrink: 0;
+        }
+
+        /* ─── UPLOAD ZONE ─── */
+        .upload-zone {
+            border: 1.5px dashed var(--border);
+            border-radius: 12px;
+            padding: 36px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .upload-zone::after {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 50% 50%, var(--accent-dim) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+        .upload-zone:hover { border-color: var(--accent); }
+        .upload-zone:hover::after { opacity: 1; }
+        .upload-zone.has-file { border-color: var(--accent); background: #2dd4bf08; }
+        .upload-icon {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            display: block;
+            position: relative; z-index: 1;
+        }
+        .upload-zone p { color: var(--text-dim); font-size: 0.8rem; position: relative; z-index: 1; }
+        .upload-zone p b { color: var(--accent); }
+
+        /* ─── PREVIEW ─── */
+        .preview-wrap {
+            width: 100%; aspect-ratio: 1;
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--bg-deep);
+            display: none;
+            position: relative;
+        }
+        .preview-wrap.show { display: block; }
+        .preview-wrap img { width: 100%; height: 100%; object-fit: contain; }
+        .preview-reset {
+            position: absolute; top: 8px; right: 8px;
+            background: #000a; backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            width: 28px; height: 28px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 0.8rem;
+            transition: color 0.2s;
+        }
+        .preview-reset:hover { color: var(--rose); }
+
+        /* ─── SAMPLE CHIPS ─── */
+        .sample-section { margin-top: 20px; }
+        .samples-wrap { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+        .chip {
+            padding: 5px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-dim);
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .chip:hover { border-color: var(--accent); color: var(--accent); }
+        .chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+        /* ─── SEARCH BUTTON ─── */
+        .btn-go {
+            width: 100%; margin-top: 18px;
+            padding: 13px;
+            background: var(--accent);
+            color: var(--bg-deep);
+            border: none; border-radius: 10px;
+            font-family: var(--font-body);
+            font-size: 0.9rem; font-weight: 700;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            text-transform: uppercase;
+        }
+        .btn-go:hover { transform: translateY(-2px); box-shadow: 0 8px 30px #2dd4bf33; }
+        .btn-go:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* ─── DROPDOWN & CUSTOM WEIGHTS ─── */
+        .mode-select-wrap {
+            margin-top: 18px;
+        }
+        .mode-dropdown {
+            width: 100%;
+            background: var(--bg-deep);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 9px 12px;
+            font-family: var(--font-body);
+            font-size: 0.82rem;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .mode-dropdown:focus {
+            border-color: var(--accent);
+        }
+        .mode-dropdown option {
+            background: var(--bg-card);
+            color: var(--text);
+        }
+        .custom-weights-box {
+            display: none;
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            animation: fadeUp 0.3s ease;
+        }
+        .slider-row {
+            margin-bottom: 8px;
+        }
+        .slider-row:last-child {
+            margin-bottom: 0;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            margin-bottom: 3px;
+        }
+        .slider-label span:last-child {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .weight-slider {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: #1e2c3d;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .weight-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+
+
+        /* ─── RESULTS AREA ─── */
+        .results-area { min-height: 300px; }
+
+        .empty-state {
+            text-align: center; padding: 80px 24px;
+            color: var(--text-muted);
+        }
+        .empty-state .big-icon { font-size: 3.5rem; margin-bottom: 16px; filter: grayscale(0.6); }
+        .empty-state p { font-size: 0.9rem; }
+
+        /* spinner */
+        .loader { display: none; text-align: center; padding: 60px; }
+        .loader.on { display: block; }
+        .loader .bar {
+            display: inline-block; width: 4px; height: 24px; margin: 0 3px;
+            background: var(--accent); border-radius: 4px;
+            animation: pulse 1s infinite ease-in-out;
+        }
+        .loader .bar:nth-child(2) { animation-delay: 0.1s; }
+        .loader .bar:nth-child(3) { animation-delay: 0.2s; }
+        .loader .bar:nth-child(4) { animation-delay: 0.3s; }
+        @keyframes pulse {
+            0%, 100% { transform: scaleY(0.4); opacity: 0.4; }
+            50% { transform: scaleY(1); opacity: 1; }
+        }
+
+        /* ─── TOP 5 RESULTS ─── */
+        .top5-strip {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+        .res-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+            position: relative;
+        }
+        .res-card:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 12px 32px #0008; }
+        .res-card::after {
+            content: '👁 So sánh';
+            position: absolute;
+            top: 6px; right: 6px;
+            background: rgba(13, 21, 32, 0.85);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--border);
+            color: var(--accent);
+            font-size: 0.65rem;
+            padding: 2px 7px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            font-family: var(--font-body);
+            font-weight: 600;
+        }
+        .res-card:hover::after { opacity: 1; }
+        .res-card .thumb { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; }
+        .res-card .thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .res-badge {
+            position: absolute; top: 6px; left: 6px;
+            background: var(--accent); color: var(--bg-deep);
+            width: 24px; height: 24px; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.75rem;
+        }
+        .res-card .meta { padding: 10px 12px; }
+        .res-card .cat { color: var(--accent); font-weight: 600; font-size: 0.8rem; }
+        .res-card .sim { font-family: var(--font-mono); font-size: 1.15rem; font-weight: 700; color: var(--text); margin-top: 2px; }
+        .res-card .breakdown { font-size: 0.65rem; color: var(--text-dim); margin-top: 4px; font-family: var(--font-mono); }
+
+        /* ─── MODAL SO SÁNH ─── */
+        .modal-backdrop {
+            position: fixed; inset: 0;
+            background: rgba(4, 7, 13, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            align-items: center; justify-content: center;
+            padding: 24px;
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+        .modal-backdrop.open { display: flex; opacity: 1; }
+        .modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            width: 100%; max-width: 1100px; max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 40px rgba(45,212,191,0.1);
+            animation: modalSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            padding: 28px;
+        }
+        @keyframes modalSlide {
+            from { transform: translateY(24px) scale(0.97); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding-bottom: 16px; border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        .modal-title {
+            font-family: var(--font-display);
+            font-size: 1.4rem; color: var(--text);
+        }
+        .modal-title span { color: var(--accent); }
+        .modal-close {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            width: 34px; height: 34px; border-radius: 50%;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; transition: all 0.2s;
+        }
+        .modal-close:hover { color: var(--rose); border-color: var(--rose); }
+
+        .compare-cols {
+            display: grid; grid-template-columns: 1fr auto 1fr;
+            gap: 20px; align-items: stretch; margin-bottom: 24px;
+        }
+        .leaf-col {
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px; text-align: center;
+        }
+        .leaf-col .tag {
+            font-family: var(--font-mono); font-size: 0.72rem;
+            color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px;
+        }
+        .leaf-col .leaf-name {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent);
+            margin-bottom: 12px;
+        }
+        .leaf-col .leaf-img-pair {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
+        }
+        .leaf-col .leaf-img-pair img {
+            width: 100%; aspect-ratio: 1; object-fit: cover;
+            border-radius: 8px; border: 1px solid var(--border);
+        }
+        .leaf-col .img-lbl { font-size: 0.68rem; color: var(--text-dim); margin-top: 4px; }
+        .vs-badge {
+            align-self: center;
+            width: 44px; height: 44px; border-radius: 50%;
+            background: var(--bg-elevated); border: 1px solid var(--border);
+            color: var(--gold); font-weight: 800; font-size: 0.85rem;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 20px rgba(245,158,11,0.15);
+        }
+
+        .compare-table {
+            width: 100%; border-collapse: collapse; font-size: 0.8rem;
+        }
+        .compare-table th {
+            padding: 10px 14px; text-align: left;
+            background: var(--bg-elevated); color: var(--text-dim);
+            font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
+        }
+        .compare-table td {
+            padding: 9px 14px; border-bottom: 1px solid #142030;
+            font-family: var(--font-mono);
+        }
+        .compare-table tr:hover td { background: rgba(255,255,255,0.02); }
+        .compare-table .diff-pill {
+            display: inline-block; padding: 2px 7px; border-radius: 4px;
+            font-size: 0.72rem; font-weight: 600;
+        }
+        .diff-good { background: rgba(45,212,191,0.15); color: var(--accent); }
+        .diff-mid { background: rgba(245,158,11,0.15); color: var(--gold); }
+        .diff-far { background: rgba(251,113,133,0.15); color: var(--rose); }
+
+        .modal-chart-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px;
+        }
+
+
+        /* ─── VISUALIZATION SECTION ─── */
+        .viz-section { margin-top: 28px; }
+        .section-label {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            color: var(--text);
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 4px; margin-bottom: 18px; flex-wrap: wrap; }
+        .tab {
+            padding: 8px 18px; border-radius: 8px;
+            border: 1px solid var(--border);
+            background: transparent; color: var(--text-dim);
+            font-family: var(--font-body); font-size: 0.8rem; font-weight: 500;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .tab:hover { border-color: var(--text-dim); color: var(--text); }
+        .tab.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeUp 0.4s ease; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+        /* Vis image grid */
+        .vis-grid { display: grid; gap: 14px; }
+        .vis-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+        .vis-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .vis-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+        .vis-item {
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .vis-item img { width: 100%; display: block; }
+        .vis-item .caption {
+            padding: 8px 12px;
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            text-align: center;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Feature table */
+        .feat-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+        .feat-table th {
+            text-align: left; padding: 6px 10px;
+            color: var(--text-muted); font-weight: 500;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+        }
+        .feat-table td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #1a2535;
+            font-family: var(--font-mono); font-size: 0.78rem;
+        }
+        .feat-table tr:hover td { background: #ffffff05; }
+        .feat-label { color: var(--text-dim); }
+        .feat-val { color: var(--text); font-weight: 500; }
+
+        /* Color swatch */
+        .swatch-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+        .swatch-box {
+            width: 48px; height: 48px; border-radius: 10px;
+            border: 2px solid var(--border);
+            flex-shrink: 0;
+        }
+        .swatch-info { font-size: 0.78rem; }
+        .swatch-info .hex { font-family: var(--font-mono); color: var(--text); font-weight: 600; }
+        .swatch-info .desc { color: var(--text-dim); font-size: 0.72rem; margin-top: 2px; }
+
+        /* Chart container */
+        .chart-box {
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .chart-box canvas { max-height: 260px; }
+
+        /* Distance table */
+        .dist-table { width: 100%; border-collapse: collapse; }
+        .dist-table th {
+            text-align: left; padding: 8px 10px;
+            color: var(--text-muted); font-weight: 500; font-size: 0.7rem;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
+        }
+        .dist-table td {
+            padding: 8px 10px;
+            font-family: var(--font-mono); font-size: 0.8rem;
+            border-bottom: 1px solid #1a2535;
+        }
+        .dist-table tr:hover td { background: #ffffff05; }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .top5-strip { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 640px) {
+            .top5-strip { grid-template-columns: repeat(2, 1fr); }
+            .vis-grid.cols-3, .vis-grid.cols-4 { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hero">
+    <h1>🍃 Leaf <span>CBIR</span></h1>
+    <p class="subtitle">Content-Based Image Retrieval for Leaf Species</p>
+    <div class="db-badge"><b>1200</b> images · <b>8</b> species · <b>25D</b> feature vectors</div>
+</div>
+
+<div class="container">
+<div class="main-grid">
+
+    <!-- ════ LEFT: INPUT PANEL ════ -->
+    <div class="panel" style="position: sticky; top: 24px;">
+        <div class="panel-title"><span class="dot"></span> Query Input</div>
+
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+            <span class="upload-icon">⬆</span>
+            <p><b>Click to upload</b> or drag & drop</p>
+            <p style="margin-top: 4px; opacity: 0.7;">JPG / PNG · max 16 MB</p>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" style="display:none">
+
+        <div class="preview-wrap" id="previewWrap">
+            <img id="previewImg" src="" alt="Query">
+            <div class="preview-reset" onclick="resetUpload()" title="Clear">✕</div>
+        </div>
+
+        <div class="sample-section">
+            <div class="panel-title"><span class="dot" style="background:var(--violet)"></span> Test Samples</div>
+            <div class="samples-wrap" id="samplesWrap">
+                {% for s in samples %}
+                <span class="chip" data-name="{{ s.filename }}" data-cat="{{ s.category }}" onclick="pickSample(this)">{{ s.category }}</span>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="mode-select-wrap">
+            <div class="panel-title" style="margin-bottom:8px;"><span class="dot" style="background:var(--accent)"></span> Tiêu chí truy vấn</div>
+            <select class="mode-dropdown" id="searchModeSelect" onchange="onModeChange(this.value)">
+                <option value="balanced" selected>🌿 Tổng hợp (Hình dạng 50% + Gân 30% + Màu 20%)</option>
+                <option value="shape_only">📐 Chỉ theo Hình dạng (Shape 100%)</option>
+                <option value="color_only">🎨 Chỉ theo Màu sắc (Color 100%)</option>
+                <option value="texture_only">🧬 Chỉ theo Gân lá (Texture 100%)</option>
+                <option value="shape_texture">📐+🧬 Hình dạng & Gân lá (Không phụ thuộc màu)</option>
+                <option value="custom">⚙️ Tùy chỉnh trọng số (Custom Weights)...</option>
+            </select>
+
+            <div class="custom-weights-box" id="customWeightsBox">
+                <div class="slider-row">
+                    <div class="slider-label"><span>📐 Hình dạng (Shape)</span><span id="lblWeightShape">50%</span></div>
+                    <input type="range" class="weight-slider" id="sliderShape" min="0" max="100" value="50" oninput="updateSliders()">
+                </div>
+                <div class="slider-row">
+                    <div class="slider-label"><span>🧬 Gân lá (Texture)</span><span id="lblWeightTexture">30%</span></div>
+                    <input type="range" class="weight-slider" id="sliderTexture" min="0" max="100" value="30" oninput="updateSliders()">
+                </div>
+                <div class="slider-row">
+                    <div class="slider-label"><span>🎨 Màu sắc (Color)</span><span id="lblWeightColor">20%</span></div>
+                    <input type="range" class="weight-slider" id="sliderColor" min="0" max="100" value="20" oninput="updateSliders()">
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-go" id="btnGo" onclick="doSearch()" disabled>Search Similar Leaves</button>
+    </div>
+
+
+    <!-- ════ RIGHT: RESULTS ════ -->
+    <div class="results-area">
+
+        <div id="emptyState" class="empty-state">
+            <div class="big-icon">🌿</div>
+            <p>Upload a leaf image or pick a test sample to begin</p>
+        </div>
+
+        <div class="loader" id="loader">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <p style="margin-top: 16px; color: var(--text-dim); font-size: 0.85rem;">Extracting features & searching…</p>
+        </div>
+
+        <div id="resultsWrap" style="display:none;">
+
+            <!-- TOP 5 -->
+            <div class="panel">
+                <div class="panel-title" style="justify-content:space-between;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="dot" style="background:var(--gold)"></span> Top 5 Most Similar
+                    </div>
+                    <span id="activeCriteriaBadge" style="font-size:0.68rem; padding:3px 10px; border-radius:100px; border:1px solid var(--border); color:var(--accent); font-family:var(--font-mono); font-weight:normal; text-transform:none;">Tiêu chí: Tổng hợp</span>
+                </div>
+                <div class="top5-strip" id="top5Grid"></div>
+            </div>
+
+
+            <!-- VISUALIZATION TABS -->
+            <div class="viz-section">
+                <div class="section-label">Feature Analysis & Visualization</div>
+
+                <div class="tabs" id="tabBar">
+                    <div class="tab active" onclick="switchTab('segmentation')">Segmentation</div>
+                    <div class="tab" onclick="switchTab('shape')">Shape</div>
+                    <div class="tab" onclick="switchTab('color')">Color</div>
+                    <div class="tab" onclick="switchTab('texture')">Texture</div>
+                    <div class="tab" onclick="switchTab('radar')">Radar</div>
+                    <div class="tab" onclick="switchTab('distances')">Distances</div>
+                </div>
+
+                <!-- TAB: Segmentation -->
+                <div class="tab-content active" id="tc-segmentation">
+                    <div class="vis-grid cols-4" id="segGrid"></div>
+                </div>
+
+                <!-- TAB: Shape -->
+                <div class="tab-content" id="tc-shape">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="vis-item" id="shapeImgWrap"></div>
+                        <div class="panel" style="padding: 16px;">
+                            <div class="panel-title"><span class="dot" style="background:var(--sky)"></span> Shape Descriptors (11D)</div>
+                            <table class="feat-table" id="shapeTable"></table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: Color -->
+                <div class="tab-content" id="tc-color">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div>
+                            <div class="panel" style="padding: 16px; margin-bottom: 14px;">
+                                <div class="panel-title"><span class="dot" style="background:var(--rose)"></span> Color Summary</div>
+                                <div class="swatch-row" id="swatchRow"></div>
+                                <table class="feat-table" id="colorTable"></table>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="chart-box" style="margin-bottom: 14px;">
+                                <canvas id="histHueChart"></canvas>
+                            </div>
+                            <div class="chart-box">
+                                <canvas id="histSVChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: Texture -->
+                <div class="tab-content" id="tc-texture">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+                        <div class="vis-item" id="edgeImgWrap"></div>
+                        <div class="vis-item" id="glcmImgWrap"></div>
+                        <div class="panel" style="padding: 16px;">
+                            <div class="panel-title"><span class="dot" style="background:var(--violet)"></span> GLCM Texture (8D)</div>
+                            <table class="feat-table" id="textureTable"></table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: Radar -->
+                <div class="tab-content" id="tc-radar">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="chart-box">
+                            <canvas id="radarChart"></canvas>
+                        </div>
+                        <div class="panel" style="padding: 16px;">
+                            <div class="panel-title"><span class="dot" style="background:var(--accent)"></span> Feature Vector (25D)</div>
+                            <div class="chart-box"><canvas id="vectorBarChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: Distances -->
+                <div class="tab-content" id="tc-distances">
+                    <div class="panel" style="padding: 16px;">
+                        <div class="panel-title"><span class="dot" style="background:var(--gold)"></span> Distance Breakdown — Query vs Top 5</div>
+                        <table class="dist-table" id="distTable">
+                            <thead>
+                                <tr><th>#</th><th>Species</th><th>Similarity</th><th>D(Shape)</th><th>D(Texture)</th><th>D(Color)</th><th>D(Total)</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+
+<!-- ════ MODAL SO SÁNH CHI TIẾT 2 LÁ ════ -->
+<div class="modal-backdrop" id="compareModal" onclick="if(event.target===this) closeCompareModal()">
+    <div class="modal-box">
+        <div class="modal-header">
+            <div class="modal-title">⚔️ So Sánh Chi Tiết <span>Đối Sánh Đặc Trưng Lá</span></div>
+            <button class="modal-close" onclick="closeCompareModal()">✕</button>
+        </div>
+
+        <div id="modalLoading" style="display:none; text-align:center; padding:40px;">
+            <div class="loader on">
+                <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            </div>
+            <p style="color:var(--text-dim); margin-top:14px; font-size:0.85rem;">Đang trích xuất và đối chiếu đặc trưng...</p>
+        </div>
+
+        <div id="modalContent" style="display:none;">
+            <!-- Hai lá đối đầu -->
+            <div class="compare-cols">
+                <!-- Query Leaf -->
+                <div class="leaf-col">
+                    <div class="tag">Lá truy vấn (Input Query)</div>
+                    <div class="leaf-name" id="modalQueryName">Query Leaf</div>
+                    <div class="leaf-img-pair">
+                        <div>
+                            <img id="modalQueryImg" src="" alt="Query original">
+                            <div class="img-lbl">Ảnh gốc</div>
+                        </div>
+                        <div>
+                            <img id="modalQueryShape" src="" alt="Query shape overlay">
+                            <div class="img-lbl">Khung hình học</div>
+                        </div>
+                    </div>
+                    <div class="swatch-row" style="justify-content:center; margin-bottom:0;">
+                        <div class="swatch-box" id="modalQuerySwatch" style="width:28px; height:28px;"></div>
+                        <div class="swatch-info" style="text-align:left;">
+                            <div class="hex" id="modalQueryHex">#000000</div>
+                            <div class="desc">Màu đại diện</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VS Badge -->
+                <div class="vs-badge">VS</div>
+
+                <!-- Match Leaf -->
+                <div class="leaf-col">
+                    <div class="tag" id="modalMatchRank">Hạng #1 trong CSDL</div>
+                    <div class="leaf-name" id="modalMatchName">Matched Leaf</div>
+                    <div class="leaf-img-pair">
+                        <div>
+                            <img id="modalMatchImg" src="" alt="Match original">
+                            <div class="img-lbl">Ảnh gốc CSDL</div>
+                        </div>
+                        <div>
+                            <img id="modalMatchShape" src="" alt="Match shape overlay">
+                            <div class="img-lbl">Khung hình học</div>
+                        </div>
+                    </div>
+                    <div class="swatch-row" style="justify-content:center; margin-bottom:0;">
+                        <div class="swatch-box" id="modalMatchSwatch" style="width:28px; height:28px;"></div>
+                        <div class="swatch-info" style="text-align:left;">
+                            <div class="hex" id="modalMatchHex">#000000</div>
+                            <div class="desc">Màu đại diện</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Radar chart so sánh hai lá -->
+            <div class="modal-chart-grid">
+                <div class="chart-box">
+                    <canvas id="compareRadarChart"></canvas>
+                </div>
+                <div class="panel" style="padding:16px;">
+                    <div class="panel-title"><span class="dot" style="background:var(--gold)"></span> Tóm tắt mức độ tương đồng</div>
+                    <div style="display:flex; justify-content:space-around; text-align:center; padding:18px 0; border-bottom:1px solid var(--border);">
+                        <div>
+                            <div style="color:var(--text-dim); font-size:0.75rem; text-transform:uppercase;">Tổng tương đồng</div>
+                            <div style="font-family:var(--font-mono); font-size:1.6rem; font-weight:700; color:var(--accent);" id="modalSimPct">0%</div>
+                        </div>
+                        <div>
+                            <div style="color:var(--text-dim); font-size:0.75rem; text-transform:uppercase;">Khoảng cách tổng</div>
+                            <div style="font-family:var(--font-mono); font-size:1.6rem; font-weight:700; color:var(--gold);" id="modalTotalDist">0.000</div>
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; padding-top:14px; text-align:center;">
+                        <div style="background:var(--bg-deep); padding:10px; border-radius:8px; border:1px solid var(--border);">
+                            <div style="font-size:0.68rem; color:var(--text-dim);">D(Shape)</div>
+                            <div style="font-family:var(--font-mono); font-weight:600; color:var(--sky); font-size:0.95rem;" id="modalDistShape">0.0</div>
+                        </div>
+                        <div style="background:var(--bg-deep); padding:10px; border-radius:8px; border:1px solid var(--border);">
+                            <div style="font-size:0.68rem; color:var(--text-dim);">D(Texture)</div>
+                            <div style="font-family:var(--font-mono); font-weight:600; color:var(--violet); font-size:0.95rem;" id="modalDistTexture">0.0</div>
+                        </div>
+                        <div style="background:var(--bg-deep); padding:10px; border-radius:8px; border:1px solid var(--border);">
+                            <div style="font-size:0.68rem; color:var(--text-dim);">D(Color)</div>
+                            <div style="font-family:var(--font-mono); font-weight:600; color:var(--rose); font-size:0.95rem;" id="modalDistColor">0.0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bảng so sánh từng chỉ số -->
+            <div class="panel" style="margin-top:20px; padding:16px;">
+                <div class="panel-title"><span class="dot" style="background:var(--accent)"></span> Bảng đối chiếu 25 chỉ số đặc trưng</div>
+                <table class="compare-table" id="compareFeaturesTable">
+                    <thead>
+                        <tr>
+                            <th>Nhóm / Thuộc tính</th>
+                            <th>Lá truy vấn (Query)</th>
+                            <th>Lá so khớp (Match)</th>
+                            <th>Chênh lệch tuyệt đối (|Δ|)</th>
+                            <th>Đánh giá</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedFile = null, selectedSample = null;
+let chartInstances = {};
+
+/* ─── Upload / Preview ─── */
+document.getElementById('fileInput').addEventListener('change', e => {
+    if (e.target.files.length) {
+        selectedFile = e.target.files[0]; selectedSample = null;
+        clearChips();
+        showPreview(URL.createObjectURL(selectedFile));
+        document.getElementById('btnGo').disabled = false;
+    }
+});
+const uz = document.getElementById('uploadZone');
+uz.addEventListener('dragover', e => { e.preventDefault(); uz.style.borderColor = 'var(--accent)'; });
+uz.addEventListener('dragleave', () => uz.style.borderColor = '');
+uz.addEventListener('drop', e => {
+    e.preventDefault(); uz.style.borderColor = '';
+    if (e.dataTransfer.files.length) {
+        selectedFile = e.dataTransfer.files[0]; selectedSample = null;
+        clearChips();
+        document.getElementById('fileInput').files = e.dataTransfer.files;
+        showPreview(URL.createObjectURL(selectedFile));
+        document.getElementById('btnGo').disabled = false;
+    }
+});
+
+function showPreview(src) {
+    document.getElementById('previewImg').src = src;
+    document.getElementById('previewWrap').classList.add('show');
+    document.getElementById('uploadZone').style.display = 'none';
+}
+function resetUpload() {
+    selectedFile = null; selectedSample = null;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('previewWrap').classList.remove('show');
+    document.getElementById('uploadZone').style.display = '';
+    document.getElementById('btnGo').disabled = true;
+    clearChips();
+}
+function pickSample(el) {
+    clearChips(); el.classList.add('on');
+    selectedSample = el.dataset.name; selectedFile = null;
+    document.getElementById('fileInput').value = '';
+    showPreview('/data/test_queries/' + selectedSample);
+    document.getElementById('btnGo').disabled = false;
+}
+function clearChips() { document.querySelectorAll('.chip').forEach(c => c.classList.remove('on')); }
+
+/* ─── Tabs ─── */
+function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tc-' + name).classList.add('active');
+}
+
+/* ─── Mode & Custom Weights ─── */
+function onModeChange(val) {
+    const box = document.getElementById('customWeightsBox');
+    if (val === 'custom') {
+        box.style.display = 'block';
+    } else {
+        box.style.display = 'none';
+    }
+}
+
+function updateSliders() {
+    const s = parseInt(document.getElementById('sliderShape').value) || 0;
+    const t = parseInt(document.getElementById('sliderTexture').value) || 0;
+    const c = parseInt(document.getElementById('sliderColor').value) || 0;
+    const sum = s + t + c || 1;
+
+    document.getElementById('lblWeightShape').textContent = Math.round((s / sum) * 100) + '%';
+    document.getElementById('lblWeightTexture').textContent = Math.round((t / sum) * 100) + '%';
+    document.getElementById('lblWeightColor').textContent = Math.round((c / sum) * 100) + '%';
+}
+
+/* ─── Search ─── */
+async function doSearch() {
+    const btn = document.getElementById('btnGo');
+    btn.disabled = true;
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('resultsWrap').style.display = 'none';
+    document.getElementById('loader').classList.add('on');
+
+    const fd = new FormData();
+    if (selectedFile) fd.append('query_image', selectedFile);
+    else if (selectedSample) fd.append('sample_name', selectedSample);
+
+    const mode = document.getElementById('searchModeSelect').value;
+    fd.append('search_mode', mode);
+
+    if (mode === 'custom') {
+        fd.append('w_shape', document.getElementById('sliderShape').value);
+        fd.append('w_texture', document.getElementById('sliderTexture').value);
+        fd.append('w_color', document.getElementById('sliderColor').value);
+    }
+
+    try {
+        const resp = await fetch('/search', { method: 'POST', body: fd });
+        const data = await resp.json();
+        if (data.error) { alert(data.error); return; }
+        renderAll(data);
+    } catch (err) { alert('Error: ' + err.message); }
+    finally { document.getElementById('loader').classList.remove('on'); btn.disabled = false; }
+}
+
+
+let lastSearchData = null;
+
+/* ─── Render ─── */
+function renderAll(data) {
+    lastSearchData = data;
+    document.getElementById('resultsWrap').style.display = '';
+    const I = data.intermediate;
+    const feat = I.features_dict;
+
+    // Update active criteria badge
+    const badge = document.getElementById('activeCriteriaBadge');
+    if (I.active_weights) {
+        const ws = Math.round(I.active_weights.shape * 100);
+        const wt = Math.round(I.active_weights.texture * 100);
+        const wc = Math.round(I.active_weights.color * 100);
+        if (ws === 100) badge.textContent = 'Tiêu chí: 100% Hình dạng';
+        else if (wc === 100) badge.textContent = 'Tiêu chí: 100% Màu sắc';
+        else if (wt === 100) badge.textContent = 'Tiêu chí: 100% Gân lá';
+        else if (wc === 0) badge.textContent = `Tiêu chí: Hình dạng ${ws}% + Gân ${wt}%`;
+        else badge.textContent = `Tiêu chí: S:${ws}% T:${wt}% C:${wc}%`;
+    }
+
+    // ── Top 5
+
+    const g = document.getElementById('top5Grid'); g.innerHTML = '';
+    data.results.forEach((r, idx) => {
+        g.innerHTML += `<div class="res-card" onclick="openCompareModal(${idx})" title="Nhấp để xem bảng so sánh chi tiết giữa lá này và lá truy vấn">
+            <div class="thumb"><div class="res-badge">${r.rank}</div><img src="data:image/jpeg;base64,${r.image_base64}"></div>
+            <div class="meta"><div class="cat">${r.category}</div><div class="sim">${r.similarity_pct.toFixed(1)}%</div>
+            <div class="breakdown">S ${r.dist_shape.toFixed(3)} · T ${r.dist_texture.toFixed(3)} · C ${r.dist_color.toFixed(3)}</div></div></div>`;
+    });
+
+    // ── Segmentation tab
+    document.getElementById('segGrid').innerHTML = [
+        ['contour_base64', 'Contour Detection'],
+        ['mask_base64', 'Binary Mask'],
+        ['masked_crop_base64', 'Leaf Isolation'],
+        ['hue_heatmap_base64', 'Hue Heatmap']
+    ].map(([k,t]) => `<div class="vis-item"><img src="data:image/png;base64,${I[k]}"><div class="caption">${t}</div></div>`).join('');
+
+    // ── Shape tab
+    document.getElementById('shapeImgWrap').innerHTML = `<img src="data:image/png;base64,${I.shape_overlay_base64}">
+        <div class="caption"><span style="color:#0f0">■</span> Contour  <span style="color:#f00">■</span> Convex Hull  <span style="color:#ff0">■</span> Bounding Rect  <span style="color:#f0f">■</span> Fitted Ellipse</div>`;
+    const sRows = [];
+    feat.shape.hu_moments.forEach((v, i) => sRows.push(['Hu Moment φ' + (i+1), v.toFixed(4)]));
+    sRows.push(['Aspect Ratio', feat.shape.aspect_ratio.toFixed(4)]);
+    sRows.push(['Circularity', feat.shape.circularity.toFixed(4)]);
+    sRows.push(['Solidity', feat.shape.solidity.toFixed(4)]);
+    sRows.push(['Extent', feat.shape.extent.toFixed(4)]);
+    fillFeatTable('shapeTable', sRows);
+
+    // ── Color tab
+    document.getElementById('swatchRow').innerHTML = `<div class="swatch-box" style="background:${I.color_swatch_hex}"></div>
+        <div class="swatch-info"><div class="hex">${I.color_swatch_hex}</div><div class="desc">Average leaf color (HSV→RGB)</div></div>`;
+    fillFeatTable('colorTable', [
+        ['Hue Mean', feat.color.h_mean.toFixed(2)], ['Hue Std', feat.color.h_std.toFixed(2)],
+        ['Saturation Mean', feat.color.s_mean.toFixed(2)], ['Saturation Std', feat.color.s_std.toFixed(2)],
+        ['Value Mean', feat.color.v_mean.toFixed(2)], ['Value Std', feat.color.v_std.toFixed(2)]
+    ]);
+    renderHueHist(I.hist_h);
+    renderSVHist(I.hist_s, I.hist_v);
+
+    // ── Texture tab
+    document.getElementById('edgeImgWrap').innerHTML = `<img src="data:image/png;base64,${I.edge_map_base64}"><div class="caption">Canny Edge Map — explains Contrast</div>`;
+    document.getElementById('glcmImgWrap').innerHTML = `<img src="data:image/png;base64,${I.glcm_heatmap_base64}"><div class="caption">GLCM Matrix (32×32) — diagonal = homogeneous</div>`;
+    fillFeatTable('textureTable', [
+        ['GLCM Contrast', feat.texture.glcm_contrast.toFixed(4)],
+        ['GLCM Dissimilarity', feat.texture.glcm_dissimilarity.toFixed(4)],
+        ['GLCM Homogeneity', feat.texture.glcm_homogeneity.toFixed(4)],
+        ['GLCM Energy', feat.texture.glcm_energy.toFixed(4)],
+        ['GLCM Correlation', feat.texture.glcm_correlation.toFixed(4)],
+        ['GLCM ASM', feat.texture.glcm_asm.toFixed(6)],
+        ['Gray Mean', feat.texture.gray_mean.toFixed(2)],
+        ['Gray Std', feat.texture.gray_std.toFixed(2)]
+    ]);
+
+    // ── Radar tab
+    renderRadar(I.radar);
+    renderVectorBar(I.raw_vector, I.feature_names);
+
+    // ── Distances tab
+    const tbody = document.querySelector('#distTable tbody'); tbody.innerHTML = '';
+    data.results.forEach(r => {
+        tbody.innerHTML += `<tr><td style="font-weight:700">#${r.rank}</td><td style="color:var(--accent)">${r.category}</td>
+            <td style="color:var(--gold);font-weight:700">${r.similarity_pct.toFixed(2)}%</td>
+            <td>${r.dist_shape.toFixed(4)}</td><td>${r.dist_texture.toFixed(4)}</td>
+            <td>${r.dist_color.toFixed(4)}</td><td>${r.total_dist.toFixed(4)}</td></tr>`;
+    });
+
+    // reset to first tab
+    switchTabTo('segmentation');
+}
+
+function switchTabTo(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.textContent.trim().toLowerCase().startsWith(name.slice(0,3))));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.toggle('active', t.id === 'tc-' + name));
+}
+
+function fillFeatTable(id, rows) {
+    document.getElementById(id).innerHTML = '<thead><tr><th>Feature</th><th>Value</th></tr></thead><tbody>' +
+        rows.map(r => `<tr><td class="feat-label">${r[0]}</td><td class="feat-val">${r[1]}</td></tr>`).join('') + '</tbody>';
+}
+
+/* ─── Charts ─── */
+function destroyChart(key) { if (chartInstances[key]) { chartInstances[key].destroy(); delete chartInstances[key]; } }
+
+function renderHueHist(data) {
+    destroyChart('hue');
+    const ctx = document.getElementById('histHueChart').getContext('2d');
+    chartInstances['hue'] = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: Array.from({length: data.length}, (_, i) => i),
+            datasets: [{ data, backgroundColor: Array.from({length: data.length}, (_, i) => `hsl(${i*2}, 80%, 55%)`), borderWidth: 0 }] },
+        options: { responsive: true, plugins: { legend: { display: false }, title: { display: true, text: 'Hue Histogram (H channel)', color: '#94a3b8', font: { family: 'Space Grotesk' } } },
+            scales: { x: { display: false }, y: { ticks: { color: '#475569' }, grid: { color: '#1a2535' } } } }
+    });
+}
+
+function renderSVHist(sData, vData) {
+    destroyChart('sv');
+    const labels = Array.from({length: sData.length}, (_, i) => Math.round(i * 4));
+    const ctx = document.getElementById('histSVChart').getContext('2d');
+    chartInstances['sv'] = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets: [
+            { label: 'Saturation', data: sData, borderColor: '#2dd4bf', backgroundColor: '#2dd4bf22', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
+            { label: 'Value', data: vData, borderColor: '#f59e0b', backgroundColor: '#f59e0b22', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 }
+        ] },
+        options: { responsive: true, plugins: { title: { display: true, text: 'Saturation & Value Distribution', color: '#94a3b8', font: { family: 'Space Grotesk' } },
+            legend: { labels: { color: '#94a3b8', font: { family: 'Space Grotesk' } } } },
+            scales: { x: { ticks: { color: '#475569', maxTicksLimit: 8 }, grid: { color: '#1a2535' } }, y: { ticks: { color: '#475569' }, grid: { color: '#1a2535' } } } }
+    });
+}
+
+function renderRadar(radar) {
+    destroyChart('radar');
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    chartInstances['radar'] = new Chart(ctx, {
+        type: 'radar',
+        data: { labels: radar.labels, datasets: [{
+            data: radar.values, backgroundColor: '#2dd4bf22', borderColor: '#2dd4bf', borderWidth: 2, pointBackgroundColor: '#2dd4bf', pointRadius: 4
+        }] },
+        options: { responsive: true, plugins: { legend: { display: false }, title: { display: true, text: 'Feature Radar Profile', color: '#94a3b8', font: { family: 'Space Grotesk', size: 14 } } },
+            scales: { r: { min: 0, max: 1, ticks: { color: '#475569', backdropColor: 'transparent', stepSize: 0.25 },
+                grid: { color: '#1c2d42' }, pointLabels: { color: '#94a3b8', font: { family: 'Space Grotesk', size: 11 } } } } }
+    });
+}
+
+function renderVectorBar(vec, names) {
+    destroyChart('vecbar');
+    const colors = vec.map((_, i) => i < 6 ? '#fb7185' : i < 17 ? '#38bdf8' : '#a78bfa');
+    const ctx = document.getElementById('vectorBarChart').getContext('2d');
+    chartInstances['vecbar'] = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: names, datasets: [{ data: vec, backgroundColor: colors, borderWidth: 0 }] },
+        options: { responsive: true, indexAxis: 'y', plugins: { legend: { display: false },
+            title: { display: true, text: 'Raw Feature Vector (25D)', color: '#94a3b8', font: { family: 'Space Grotesk' } } },
+            scales: { x: { ticks: { color: '#475569' }, grid: { color: '#1a2535' } },
+                y: { ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 9 } }, grid: { display: false } } } }
+    });
+}
+
+/* ─── MODAL SO SÁNH CHI TIẾT ─── */
+function closeCompareModal() {
+    const modal = document.getElementById('compareModal');
+    modal.classList.remove('open');
+    destroyChart('compareRadar');
+}
+
+async function openCompareModal(rankIdx) {
+    if (!lastSearchData || !lastSearchData.results[rankIdx]) return;
+    const match = lastSearchData.results[rankIdx];
+    const queryInter = lastSearchData.intermediate;
+
+    const modal = document.getElementById('compareModal');
+    modal.classList.add('open');
+
+    document.getElementById('modalLoading').style.display = 'block';
+    document.getElementById('modalContent').style.display = 'none';
+
+    try {
+        const resp = await fetch('/compare', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filepath: match.filepath })
+        });
+        const matchData = await resp.json();
+        if (matchData.error) throw new Error(matchData.error);
+
+        renderCompareModalContent(match, queryInter, matchData);
+    } catch (err) {
+        alert('Không thể tải chi tiết đối sánh: ' + err.message);
+        closeCompareModal();
+    } finally {
+        document.getElementById('modalLoading').style.display = 'none';
+    }
+}
+
+function renderCompareModalContent(match, queryInter, matchData) {
+    document.getElementById('modalContent').style.display = 'block';
+
+    // 1. Query info
+    const queryName = selectedSample ? selectedSample.replace('query_', '').split('_')[0] : (selectedFile ? selectedFile.name : 'Query Leaf');
+    document.getElementById('modalQueryName').textContent = queryName.toUpperCase();
+    document.getElementById('modalQueryImg').src = 'data:image/jpeg;base64,' + lastSearchData.query_image;
+    document.getElementById('modalQueryShape').src = 'data:image/png;base64,' + queryInter.shape_overlay_base64;
+    document.getElementById('modalQuerySwatch').style.backgroundColor = queryInter.color_swatch_hex;
+    document.getElementById('modalQueryHex').textContent = queryInter.color_swatch_hex;
+
+    // 2. Match info
+    document.getElementById('modalMatchRank').textContent = `Hạng #${match.rank} trong CSDL (${match.similarity_pct.toFixed(1)}%)`;
+    document.getElementById('modalMatchName').textContent = match.category.toUpperCase() + ' (' + match.filename.substring(0, 16) + '...)';
+    document.getElementById('modalMatchImg').src = 'data:image/jpeg;base64,' + match.image_base64;
+    document.getElementById('modalMatchShape').src = 'data:image/png;base64,' + matchData.shape_overlay_base64;
+    document.getElementById('modalMatchSwatch').style.backgroundColor = matchData.color_swatch_hex;
+    document.getElementById('modalMatchHex').textContent = matchData.color_swatch_hex;
+
+    // 3. Summary stats
+    document.getElementById('modalSimPct').textContent = match.similarity_pct.toFixed(2) + '%';
+    document.getElementById('modalTotalDist').textContent = match.total_dist.toFixed(4);
+    document.getElementById('modalDistShape').textContent = match.dist_shape.toFixed(4);
+    document.getElementById('modalDistTexture').textContent = match.dist_texture.toFixed(4);
+    document.getElementById('modalDistColor').textContent = match.dist_color.toFixed(4);
+
+    // 4. Comparison Radar Chart
+    destroyChart('compareRadar');
+    const ctx = document.getElementById('compareRadarChart').getContext('2d');
+    chartInstances['compareRadar'] = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: queryInter.radar.labels,
+            datasets: [
+                {
+                    label: 'Query Leaf',
+                    data: queryInter.radar.values,
+                    borderColor: '#2dd4bf',
+                    backgroundColor: 'rgba(45, 212, 191, 0.25)',
+                    pointBackgroundColor: '#2dd4bf',
+                    pointRadius: 4,
+                    borderWidth: 2
+                },
+                {
+                    label: match.category + ' (#' + match.rank + ')',
+                    data: matchData.radar_values,
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.25)',
+                    pointBackgroundColor: '#f59e0b',
+                    pointRadius: 4,
+                    borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: { display: true, text: 'Trực Quan Hóa Đối Sánh Radar Profile (Query vs Match)', color: '#94a3b8', font: { family: 'Space Grotesk', size: 13 } },
+                legend: { labels: { color: '#e0e7ef', font: { family: 'Space Grotesk' } } }
+            },
+            scales: {
+                r: {
+                    min: 0, max: 1,
+                    ticks: { color: '#475569', backdropColor: 'transparent', stepSize: 0.25 },
+                    grid: { color: '#1c2d42' },
+                    pointLabels: { color: '#94a3b8', font: { family: 'Space Grotesk', size: 10 } }
+                }
+            }
+        }
+    });
+
+    // 5. Compare 25 Features Table
+    const tbody = document.querySelector('#compareFeaturesTable tbody');
+    tbody.innerHTML = '';
+
+    const qF = queryInter.features_dict;
+    const mF = matchData.features;
+
+    const rows = [
+        // SHAPE
+        { group: '📐 Hình dạng', name: 'Circularity (Độ tròn/gọn)', q: qF.shape.circularity, m: mF.shape.circularity, maxRef: 1.0 },
+        { group: '📐 Hình dạng', name: 'Solidity (Độ lồi/xẻ thùy)', q: qF.shape.solidity, m: mF.shape.solidity, maxRef: 1.0 },
+        { group: '📐 Hình dạng', name: 'Aspect Ratio (Tỉ lệ khung)', q: qF.shape.aspect_ratio, m: mF.shape.aspect_ratio, maxRef: 2.0 },
+        { group: '📐 Hình dạng', name: 'Extent (Chiếm diện tích hộp)', q: qF.shape.extent, m: mF.shape.extent, maxRef: 1.0 },
+        { group: '📐 Hình dạng', name: 'Hu Moment φ1 (Độ dẹt trục)', q: qF.shape.hu_moments[0], m: mF.shape.hu_moments[0], maxRef: 5.0 },
+        { group: '📐 Hình dạng', name: 'Hu Moment φ2 (Độ bất đối xứng)', q: qF.shape.hu_moments[1], m: mF.shape.hu_moments[1], maxRef: 10.0 },
+        { group: '📐 Hình dạng', name: 'Hu Moment φ3', q: qF.shape.hu_moments[2], m: mF.shape.hu_moments[2], maxRef: 15.0 },
+        { group: '📐 Hình dạng', name: 'Hu Moment φ4', q: qF.shape.hu_moments[3], m: mF.shape.hu_moments[3], maxRef: 15.0 },
+        { group: '📐 Hình dạng', name: 'Hu Moment φ5', q: qF.shape.hu_moments[4], m: mF.shape.hu_moments[4], maxRef: 25.0 },
+        { group: '📐 Hình dạng', name: 'Hu Moment φ6', q: qF.shape.hu_moments[5], m: mF.shape.hu_moments[5], maxRef: 20.0 },
+        { group: '📐 Hình dạng', name: 'Hu Moment φ7', q: qF.shape.hu_moments[6], m: mF.shape.hu_moments[6], maxRef: 25.0 },
+
+        // COLOR
+        { group: '🎨 Màu sắc', name: 'Hue Mean (Sắc thái chủ đạo H)', q: qF.color.h_mean, m: mF.color.h_mean, maxRef: 180.0 },
+        { group: '🎨 Màu sắc', name: 'Hue Std (Biến thiên sắc H)', q: qF.color.h_std, m: mF.color.h_std, maxRef: 50.0 },
+        { group: '🎨 Màu sắc', name: 'Saturation Mean (Độ bão hòa S)', q: qF.color.s_mean, m: mF.color.s_mean, maxRef: 255.0 },
+        { group: '🎨 Màu sắc', name: 'Saturation Std (Biến thiên S)', q: qF.color.s_std, m: mF.color.s_std, maxRef: 80.0 },
+        { group: '🎨 Màu sắc', name: 'Value Mean (Độ sáng V)', q: qF.color.v_mean, m: mF.color.v_mean, maxRef: 255.0 },
+        { group: '🎨 Màu sắc', name: 'Value Std (Biến thiên sáng V)', q: qF.color.v_std, m: mF.color.v_std, maxRef: 80.0 },
+
+        // TEXTURE
+        { group: '🧬 Gân lá', name: 'GLCM Contrast (Độ tương phản gân)', q: qF.texture.glcm_contrast, m: mF.texture.glcm_contrast, maxRef: 10.0 },
+        { group: '🧬 Gân lá', name: 'GLCM Dissimilarity (Độ dị biệt)', q: qF.texture.glcm_dissimilarity, m: mF.texture.glcm_dissimilarity, maxRef: 5.0 },
+        { group: '🧬 Gân lá', name: 'GLCM Homogeneity (Độ đồng nhất)', q: qF.texture.glcm_homogeneity, m: mF.texture.glcm_homogeneity, maxRef: 1.0 },
+        { group: '🧬 Gân lá', name: 'GLCM Energy (Năng lượng trật tự)', q: qF.texture.glcm_energy, m: mF.texture.glcm_energy, maxRef: 1.0 },
+        { group: '🧬 Gân lá', name: 'GLCM Correlation (Tương quan điểm)', q: qF.texture.glcm_correlation, m: mF.texture.glcm_correlation, maxRef: 1.0 },
+        { group: '🧬 Gân lá', name: 'GLCM ASM (Angular Second Moment)', q: qF.texture.glcm_asm, m: mF.texture.glcm_asm, maxRef: 0.5 },
+        { group: '🧬 Gân lá', name: 'Gray Mean (Trung bình mức xám)', q: qF.texture.gray_mean, m: mF.texture.gray_mean, maxRef: 255.0 },
+        { group: '🧬 Gân lá', name: 'Gray Std (Độ lệch chuẩn mức xám)', q: qF.texture.gray_std, m: mF.texture.gray_std, maxRef: 80.0 }
+    ];
+
+    rows.forEach(r => {
+        const diff = Math.abs(r.q - r.m);
+        const rel = r.maxRef ? (diff / r.maxRef) : (diff / (Math.abs(r.q) + 1e-6));
+        
+        let pillClass = 'diff-good';
+        let pillText = 'Rất tương đồng';
+        if (rel > 0.35) {
+            pillClass = 'diff-far';
+            pillText = 'Khác biệt';
+        } else if (rel > 0.15) {
+            pillClass = 'diff-mid';
+            pillText = 'Tương đối';
+        }
+
+        tbody.innerHTML += `<tr>
+            <td style="color:var(--text); font-weight:500;">
+                <span style="color:var(--text-dim); font-size:0.7rem; display:block;">${r.group}</span>
+                ${r.name}
+            </td>
+            <td style="color:var(--accent);">${typeof r.q === 'number' ? r.q.toFixed(4) : r.q}</td>
+            <td style="color:var(--gold);">${typeof r.m === 'number' ? r.m.toFixed(4) : r.m}</td>
+            <td style="color:var(--text-dim);">${diff.toFixed(4)}</td>
+            <td><span class="diff-pill ${pillClass}">${pillText}</span></td>
+        </tr>`;
+    });
+}
+</script>
+</body>
+</html>

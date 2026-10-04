@@ -1,0 +1,32 @@
+# Python environment
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Large files & datasets
+LEAF.v2i.coco.zip
+*.zip
+*.tar.gz
+
+# Data directories (keep directory structure with .gitkeep if needed)
+data/dataset/
+data/test_queries/
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Binary mask test output
+test_binary_mask/
+
+# Large model cache / checkpoints
+.cache/
+checkpoints/
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
