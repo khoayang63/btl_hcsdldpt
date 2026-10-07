@@ -603,7 +603,8 @@
         <div class="mode-select-wrap">
             <div class="panel-title" style="margin-bottom:8px;"><span class="dot" style="background:var(--accent)"></span> Tiêu chí truy vấn</div>
             <select class="mode-dropdown" id="searchModeSelect" onchange="onModeChange(this.value)">
-                <option value="balanced" selected>🌿 Tổng hợp (Hình dạng 50% + Gân 30% + Màu 20%)</option>
+                <option value="balanced" selected>🌿 Tổng hợp Handcrafted (Hình dạng 50% + Gân 30% + Màu 20%)</option>
+                <option value="deep_cnn">🧠 Deep CNN Embedding (ResNet-18 512D) [Độ chính xác cao 87.5%]</option>
                 <option value="shape_only">📐 Chỉ theo Hình dạng (Shape 100%)</option>
                 <option value="color_only">🎨 Chỉ theo Màu sắc (Color 100%)</option>
                 <option value="texture_only">🧬 Chỉ theo Gân lá (Texture 100%)</option>
@@ -663,12 +664,13 @@
                 <div class="section-label">Feature Analysis & Visualization</div>
 
                 <div class="tabs" id="tabBar">
-                    <div class="tab active" onclick="switchTab('segmentation')">Segmentation</div>
-                    <div class="tab" onclick="switchTab('shape')">Shape</div>
-                    <div class="tab" onclick="switchTab('color')">Color</div>
-                    <div class="tab" onclick="switchTab('texture')">Texture</div>
-                    <div class="tab" onclick="switchTab('radar')">Radar</div>
-                    <div class="tab" onclick="switchTab('distances')">Distances</div>
+                    <div class="tab active" data-tab="segmentation" onclick="switchTab('segmentation', this)">Segmentation</div>
+                    <div class="tab" data-tab="shape" onclick="switchTab('shape', this)">Shape</div>
+                    <div class="tab" data-tab="color" onclick="switchTab('color', this)">Color</div>
+                    <div class="tab" data-tab="texture" onclick="switchTab('texture', this)">Texture</div>
+                    <div class="tab" data-tab="radar" onclick="switchTab('radar', this)">Radar</div>
+                    <div class="tab" data-tab="distances" onclick="switchTab('distances', this)">Distances</div>
+                    <div class="tab" data-tab="clustering" onclick="switchTab('clustering', this)">🧠 K-Means & PCA</div>
                 </div>
 
                 <!-- TAB: Segmentation -->
@@ -743,6 +745,35 @@
                             </thead>
                             <tbody></tbody>
                         </table>
+                    </div>
+                </div>
+
+                <!-- TAB: Clustering & PCA Evaluation -->
+                <div class="tab-content" id="tc-clustering">
+                    <div style="margin-bottom:16px; padding:14px 18px; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="color:var(--accent); font-weight:700; font-size:0.95rem;">🧠 Đánh giá Phân cụm K-Means (k=8) & Giảm chiều PCA: Handcrafted 25D vs Deep CNN 512D</div>
+                            <div style="color:var(--text-dim); font-size:0.78rem; margin-top:4px;">Chỉ số định lượng: ARI: <b>0.361</b> (gấp gần 3 lần), NMI: <b>0.479</b>, Purity: <b>59.2%</b> vs 36.8%, Precision@5: <b>82.0%</b> vs 50.0%.</div>
+                        </div>
+                        <a href="/visualization/README_VISUALIZATION.md" target="_blank" style="padding:6px 14px; background:var(--accent-dim); border:1px solid var(--accent); color:var(--accent); border-radius:8px; font-size:0.75rem; text-decoration:none; font-family:var(--font-mono); font-weight:600;">Xem báo cáo MD ↗</a>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="vis-item">
+                            <img src="/visualization/01_pca_2d_ground_truth_vs_kmeans.png" alt="PCA 2D Ground Truth vs KMeans" style="cursor:pointer;" onclick="window.open('/visualization/01_pca_2d_ground_truth_vs_kmeans.png')">
+                            <div class="caption">1) Không gian PCA 2D: Nhãn thật (Ground Truth) vs Cụm K-Means (k=8)</div>
+                        </div>
+                        <div class="vis-item">
+                            <img src="/visualization/03_kmeans_confusion_purity_heatmap.png" alt="K-Means Confusion Heatmap" style="cursor:pointer;" onclick="window.open('/visualization/03_kmeans_confusion_purity_heatmap.png')">
+                            <div class="caption">2) Ma trận phân bố nhãn loài trong từng cụm K-Means (ResNet-18)</div>
+                        </div>
+                        <div class="vis-item">
+                            <img src="/visualization/04_handcrafted_vs_cnn_separation.png" alt="Handcrafted vs CNN PCA" style="cursor:pointer;" onclick="window.open('/visualization/04_handcrafted_vs_cnn_separation.png')">
+                            <div class="caption">3) Phân tách không gian: Handcrafted 25D vs Deep CNN Embedding 512D</div>
+                        </div>
+                        <div class="vis-item">
+                            <img src="/visualization/06_precision_at_k_comparison.png" alt="Precision Comparison" style="cursor:pointer;" onclick="window.open('/visualization/06_precision_at_k_comparison.png')">
+                            <div class="caption">4) So sánh Precision@5 giữa Handcrafted (50.0%) và Deep CNN (82.0%)</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -924,11 +955,18 @@ function pickSample(el) {
 function clearChips() { document.querySelectorAll('.chip').forEach(c => c.classList.remove('on')); }
 
 /* ─── Tabs ─── */
-function switchTab(name) {
+function switchTab(name, el) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    event.target.classList.add('active');
-    document.getElementById('tc-' + name).classList.add('active');
+    if (el) {
+        el.classList.add('active');
+    } else {
+        document.querySelectorAll('.tab').forEach(t => {
+            if (t.getAttribute('data-tab') === name) t.classList.add('active');
+        });
+    }
+    const target = document.getElementById('tc-' + name);
+    if (target) target.classList.add('active');
 }
 
 /* ─── Mode & Custom Weights ─── */
@@ -994,7 +1032,11 @@ function renderAll(data) {
 
     // Update active criteria badge
     const badge = document.getElementById('activeCriteriaBadge');
-    if (I.active_weights) {
+    if (I.search_mode === 'deep_cnn') {
+        badge.textContent = '🧠 Tiêu chí: Deep CNN (ResNet-18 512D)';
+        badge.style.color = 'var(--accent)';
+    } else if (I.active_weights) {
+        badge.style.color = 'var(--accent)';
         const ws = Math.round(I.active_weights.shape * 100);
         const wt = Math.round(I.active_weights.texture * 100);
         const wc = Math.round(I.active_weights.color * 100);
@@ -1006,13 +1048,16 @@ function renderAll(data) {
     }
 
     // ── Top 5
-
+    const isCNN = (I.search_mode === 'deep_cnn');
     const g = document.getElementById('top5Grid'); g.innerHTML = '';
     data.results.forEach((r, idx) => {
+        const breakdownText = isCNN
+            ? `ResNet-18 · CosDist: ${r.total_dist.toFixed(3)}`
+            : `S ${r.dist_shape.toFixed(3)} · T ${r.dist_texture.toFixed(3)} · C ${r.dist_color.toFixed(3)}`;
         g.innerHTML += `<div class="res-card" onclick="openCompareModal(${idx})" title="Nhấp để xem bảng so sánh chi tiết giữa lá này và lá truy vấn">
             <div class="thumb"><div class="res-badge">${r.rank}</div><img src="data:image/jpeg;base64,${r.image_base64}"></div>
             <div class="meta"><div class="cat">${r.category}</div><div class="sim">${r.similarity_pct.toFixed(1)}%</div>
-            <div class="breakdown">S ${r.dist_shape.toFixed(3)} · T ${r.dist_texture.toFixed(3)} · C ${r.dist_color.toFixed(3)}</div></div></div>`;
+            <div class="breakdown">${breakdownText}</div></div></div>`;
     });
 
     // ── Segmentation tab

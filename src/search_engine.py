@@ -99,17 +99,76 @@ class LeafSearchEngine:
                 "dist_texture": round(float(dist_texture[idx]), 4),
                 "dist_color": round(float(dist_color[idx]), 4)
             })
-            
-        # ==================== VISUALIZATIONS ====================
-        mask = feat_res["mask"]
-        contour = feat_res["contour"]
-        
+
         if isinstance(query_img_or_path, str):
             orig_bgr = cv2.imread(query_img_or_path)
         else:
             orig_bgr = query_img_or_path.copy()
 
-        h_img, w_img = orig_bgr.shape[:2]
+        intermediate_info = self._build_intermediate_info(feat_res, orig_bgr, raw_q, norm_q)
+        return results, intermediate_info
+
+    def search_cnn(self, query_img_or_path, top_k=5):
+        """
+        Performs retrieval using Deep CNN (ResNet-18 512D) embeddings + Cosine Similarity.
+        """
+        if not hasattr(self, 'cnn_matrix') or self.cnn_matrix is None:
+            cnn_cache_path = os.path.join(PROJECT_ROOT, 'db', 'cnn_feature_cache.npz')
+            if not os.path.exists(cnn_cache_path):
+                raise FileNotFoundError("Chưa tìm thấy cnn_feature_cache.npz. Vui lòng chạy extract_cnn_and_evaluate.py trước.")
+            data = np.load(cnn_cache_path, allow_pickle=True)
+            self.cnn_matrix = data["embeddings"]
+
+        from src.cnn_extractor import extract_cnn_embedding
+        q_emb = extract_cnn_embedding(query_img_or_path)
+
+        # Cosine similarity & distance (both L2 normalized)
+        cos_sims = np.dot(self.cnn_matrix, q_emb)
+        cos_dists = np.clip(1.0 - cos_sims, 0.0, 2.0)
+
+        top_indices = np.argsort(cos_dists)[:top_k]
+
+        # Extract handcrafted features for query visual panels & side-by-side comparison
+        feat_res = extract_features(query_img_or_path)
+        raw_q = feat_res["vector"]
+        norm_q = (raw_q - self.mean_vec) / self.std_vec
+
+        q_color = norm_q[self.idx_color]
+        q_shape = norm_q[self.idx_shape]
+        q_texture = norm_q[self.idx_texture]
+
+        results = []
+        for rank, idx in enumerate(top_indices, 1):
+            sim_pct = float(np.clip(cos_sims[idx] * 100.0, 0.0, 100.0))
+            d_shape = np.linalg.norm(self.norm_matrix[idx, self.idx_shape] - q_shape) / np.sqrt(11.0)
+            d_texture = np.linalg.norm(self.norm_matrix[idx, self.idx_texture] - q_texture) / np.sqrt(8.0)
+            d_color = np.linalg.norm(self.norm_matrix[idx, self.idx_color] - q_color) / np.sqrt(6.0)
+
+            results.append({
+                "rank": rank,
+                "image_id": int(self.image_ids[idx]),
+                "filename": str(self.filenames[idx]),
+                "filepath": str(self.filepaths[idx]).replace("\\", "/"),
+                "category": str(self.categories[idx]),
+                "similarity_pct": round(sim_pct, 2),
+                "total_dist": round(float(cos_dists[idx]), 4),
+                "dist_shape": round(float(d_shape), 4),
+                "dist_texture": round(float(d_texture), 4),
+                "dist_color": round(float(d_color), 4)
+            })
+
+        if isinstance(query_img_or_path, str):
+            orig_bgr = cv2.imread(query_img_or_path)
+        else:
+            orig_bgr = query_img_or_path.copy()
+
+        intermediate_info = self._build_intermediate_info(feat_res, orig_bgr, raw_q, norm_q)
+        return results, intermediate_info
+
+    def _build_intermediate_info(self, feat_res, orig_bgr, raw_q, norm_q):
+        # ==================== VISUALIZATIONS ====================
+        mask = feat_res["mask"]
+        contour = feat_res["contour"]
 
         # --- VIS 1: Contour overlay (green) ---
         vis_contour = orig_bgr.copy()
@@ -120,15 +179,11 @@ class LeafSearchEngine:
 
         # --- VIS 3: Shape overlay (contour + convex hull + bounding rect) ---
         vis_shape = orig_bgr.copy()
-        # Convex hull in red
         hull = cv2.convexHull(contour)
         cv2.drawContours(vis_shape, [hull], -1, (0, 0, 255), 2)
-        # Contour in green
         cv2.drawContours(vis_shape, [contour], -1, (0, 255, 0), 2)
-        # Bounding rect in cyan
         bx, by, bw, bh = cv2.boundingRect(contour)
         cv2.rectangle(vis_shape, (bx, by), (bx+bw, by+bh), (255, 255, 0), 2)
-        # Fitted ellipse in magenta (if enough points)
         if len(contour) >= 5:
             ellipse = cv2.fitEllipse(contour)
             cv2.ellipse(vis_shape, ellipse, (255, 0, 255), 2)
@@ -151,7 +206,6 @@ class LeafSearchEngine:
         gray_q = (gray_full // 8).astype(np.uint8)
         glcm_raw = graycomatrix(gray_q, distances=[1], angles=[0], levels=32, symmetric=True, normed=True)
         glcm_2d = glcm_raw[:, :, 0, 0]
-        # Normalize for display
         glcm_vis = (glcm_2d / (glcm_2d.max() + 1e-10) * 255).astype(np.uint8)
         glcm_vis = cv2.resize(glcm_vis, (256, 256), interpolation=cv2.INTER_NEAREST)
         glcm_colored = cv2.applyColorMap(glcm_vis, cv2.COLORMAP_INFERNO)
@@ -209,8 +263,7 @@ class LeafSearchEngine:
             "radar": radar_data,
             "color_swatch_hex": swatch_hex
         }
-        
-        return results, intermediate_info
+        return intermediate_info
 
 
 if __name__ == '__main__':

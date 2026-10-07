@@ -92,10 +92,15 @@ def search():
     else:  # balanced
         weights = {"shape": 0.50, "texture": 0.30, "color": 0.20}
 
-    # Run search with custom weights
-    results, intermediate = engine.search(query_path, top_k=5, weights=weights)
-    intermediate['active_weights'] = weights
-    intermediate['search_mode'] = mode
+    # Run search
+    if mode == 'deep_cnn':
+        results, intermediate = engine.search_cnn(query_path, top_k=5)
+        intermediate['active_weights'] = None
+        intermediate['search_mode'] = 'deep_cnn'
+    else:
+        results, intermediate = engine.search(query_path, top_k=5, weights=weights)
+        intermediate['active_weights'] = weights
+        intermediate['search_mode'] = mode
 
     # Encode query image as base64 for display
     with open(query_path, 'rb') as f:
@@ -125,6 +130,12 @@ def serve_test_query(filename):
 @app.route('/data/dataset/<path:filename>')
 def serve_dataset(filename):
     return send_from_directory(os.path.join(DATA_DIR, 'dataset'), filename)
+
+
+@app.route('/visualization/<path:filename>')
+def serve_visualization(filename):
+    viz_dir = os.path.join(PROJECT_ROOT, 'visualization')
+    return send_from_directory(viz_dir, filename)
 
 
 @app.route('/compare', methods=['POST'])

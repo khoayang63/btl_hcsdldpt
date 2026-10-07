@@ -28,30 +28,42 @@ Hệ thống cho phép quản trị CSDL ảnh lá cây và tìm kiếm các ả
 
 ```
 hcsdlpt/
-├── app.py                  # Server web demo (Flask)
-├── extract_features.py     # Script trích xuất 25D vector & nạp CSDL SQLite
-├── setup_dataset.py        # Script giải nén & phân loại dataset từ zip
-├── requirements.txt        # Danh sách thư viện Python cần thiết
-├── .gitignore              # Loại bỏ file nặng/môi trường khỏi git
+├── app.py                      # Server web demo (Flask)
+├── extract_features.py         # Script trích xuất 25D vector & nạp CSDL SQLite
+├── extract_cnn_and_evaluate.py # Script trích xuất ResNet-18 512D, chạy PCA, K-Means & sinh biểu đồ
+├── setup_dataset.py            # Script giải nén & phân loại dataset từ zip
+├── requirements.txt            # Danh sách thư viện Python cần thiết
+├── .gitignore                  # Loại bỏ file nặng/môi trường khỏi git
 │
-├── src/                    # Mã nguồn chính của hệ thống
-│   ├── database.py         # Quản trị SQLite (bảng categories, images, features)
-│   ├── feature_extractor.py# Tích hợp BiRefNet_lite + Trích xuất 25D feature
-│   └── search_engine.py    # Thuật toán tìm kiếm Top-5 theo khoảng cách trọng số
+├── src/                        # Mã nguồn chính của hệ thống
+│   ├── database.py             # Quản trị SQLite (bảng categories, images, features)
+│   ├── feature_extractor.py    # Tích hợp BiRefNet_lite + Trích xuất 25D handcrafted feature
+│   ├── cnn_extractor.py        # Trích xuất Deep CNN Embeddings (ResNet-18 512D L2-norm)
+│   └── search_engine.py        # Thuật toán tìm kiếm Top-5 (Handcrafted CBIR & Deep CNN)
 │
-├── data/                   # Dữ liệu ảnh & metadata
-│   ├── dataset/            # 1200 ảnh trong CSDL (8 loài x 150 ảnh)
-│   ├── test_queries/       # 40 ảnh query mẫu (8 loài x 5 ảnh)
+├── visualization/              # Biểu đồ trực quan hóa & báo cáo đánh giá khoa học
+│   ├── 01_pca_2d_ground_truth_vs_kmeans.png
+│   ├── 02_pca_explained_variance.png
+│   ├── 03_kmeans_confusion_purity_heatmap.png
+│   ├── 04_handcrafted_vs_cnn_separation.png
+│   ├── 05_retrieval_comparison_top5.png
+│   ├── 06_precision_at_k_comparison.png
+│   └── README_VISUALIZATION.md # Báo cáo chi tiết các chỉ số định lượng
+│
+├── data/                       # Dữ liệu ảnh & metadata
+│   ├── dataset/                # 1200 ảnh trong CSDL (8 loài x 150 ảnh)
+│   ├── test_queries/           # 40 ảnh query mẫu (8 loài x 5 ảnh)
 │   ├── dataset_metadata.json
 │   └── test_queries_metadata.json
 │
-├── db/                     # Cơ sở dữ liệu & Cache
-│   ├── leaf_database.db    # SQLite Database
-│   └── feature_cache.npz   # Ma trận vector 25D chuẩn hóa
+├── db/                         # Cơ sở dữ liệu & Cache
+│   ├── leaf_database.db        # SQLite Database
+│   ├── feature_cache.npz       # Ma trận vector 25D chuẩn hóa
+│   └── cnn_feature_cache.npz   # Ma trận vector 512D CNN, PCA và K-Means clusters
 │
-├── templates/              # Giao diện web HTML (Flask template)
+├── templates/                  # Giao diện web HTML (Flask template)
 │   └── index.html
-└── static/                 # Tài nguyên web tĩnh & upload tạm thời
+└── static/                     # Tài nguyên web tĩnh & upload tạm thời
 ```
 
 ---
@@ -128,14 +140,46 @@ Sau khi terminal hiển thị thông báo server hoạt động, mở trình duy
    - Bấm vào khung **"Click to upload"** để tải lên ảnh lá bất kỳ từ máy tính.
    - Hoặc click vào các thẻ tên trong phần **"Test Samples"** để thử nghiệm nhanh các ảnh mẫu chuẩn.
 2. **Chọn tiêu chí truy vấn (Dropdown):**
-   - *Tổng hợp (Hình dạng 50% + Gân 30% + Màu 20%)*
-   - *Chỉ theo Hình dạng (100% Shape)*
-   - *Chỉ theo Màu sắc (100% Color)*
-   - *Chỉ theo Gân lá (100% Texture)*
-   - *Hình dạng & Gân lá (Không xét màu sắc)*
-   - *Tùy chỉnh Slider theo tỷ lệ mong muốn*
-3. **Tìm kiếm:**
+   - *🌿 Tổng hợp Handcrafted (Hình dạng 50% + Gân 30% + Màu 20%)*
+   - *🧠 Deep CNN Embedding (ResNet-18 512D) [Độ chính xác cao 87.5%]*
+   - *📐 Chỉ theo Hình dạng (100% Shape)*
+   - *🎨 Chỉ theo Màu sắc (100% Color)*
+   - *🧬 Chỉ theo Gân lá (100% Texture)*
+   - *📐+🧬 Hình dạng & Gân lá (Không xét màu sắc)*
+   - *⚙️ Tùy chỉnh Slider theo tỷ lệ mong muốn*
+3. **Tìm kiếm & Quan sát:**
    - Nhấn **"Search Similar Leaves"**.
    - Xem kết quả **Top 5 ảnh giống nhất** kèm điểm % tương đồng.
 4. **Đối chiếu & So sánh chi tiết:**
    - Nhấp chuột trực tiếp vào bất kỳ ảnh nào trong Top 5 để mở **Modal So sánh Chi tiết (Side-by-Side)**: so khớp hình học, phân tích độ lệch từng chỉ số và biểu đồ Radar Profile.
+5. **Đánh giá Phân cụm & Giảm chiều:**
+   - Chuyển sang Tab **"🧠 K-Means & PCA"** để xem trực tiếp các biểu đồ phân cụm, Scree plot, Confusion Matrix heatmap và biểu đồ đối sánh Precision@5 giữa 2 phương pháp.
+
+---
+
+## 📊 Bảng so sánh định lượng: Handcrafted 25D vs Deep CNN (ResNet-18)
+
+Chạy script đánh giá độc lập:
+```bash
+python extract_cnn_and_evaluate.py
+```
+
+### 1. Đánh giá chất lượng Phân cụm (Clustering Quality - K-Means $k=8$)
+
+| Chỉ số đánh giá | Ý nghĩa toán học | Handcrafted 25D | Deep CNN (ResNet-18 512D) | Đánh giá |
+| :--- | :--- | :---: | :---: | :--- |
+| **Silhouette Score (↑)** | Độ gắn kết trong cụm và cách biệt giữa các cụm `[-1, 1]` | **0.1043** | **0.0726** | Phản ánh cấu trúc không gian hình cầu L2 |
+| **Davies-Bouldin Index (↓)** | Tỉ lệ độ phân tán trong cụm so với khoảng cách cụm | **2.0530** | **3.0063** | Số chiều cao (512D) rải đều các loài |
+| **Adjusted Rand Index ARI (↑)** | Tương đồng giữa Cụm K-Means và Nhãn loài thật `[0, 1]` | **0.1272** | **0.3613** | **CNN vượt trội gấp gần 3 lần** |
+| **Normalized Mutual Info NMI (↑)**| Lượng thông tin tương hỗ chuẩn hóa giữa Cụm và Nhãn thật | **0.2221** | **0.4789** | **CNN phản ánh cấu trúc loài vượt trội** |
+| **Cluster Purity (↑)** | Độ thuần khiết của các cụm loài cây (%) | **36.8%** | **59.2%** | **CNN tăng thêm +22.4% độ thuần khiết** |
+
+### 2. Đánh giá hiệu năng Truy vấn Tìm kiếm (Retrieval Performance trên 40 queries)
+
+| Tiêu chí | Handcrafted 25D (Color + Shape + Texture) | Deep CNN 512D (ResNet-18 Pretrained) | Cải thiện |
+| :--- | :---: | :---: | :---: |
+| **Precision@1** | **52.5%** | **87.5%** | **+35.0%** |
+| **Precision@3** | **53.3%** | **83.3%** | **+30.0%** |
+| **Precision@5** | **50.0%** | **82.0%** | **+32.0%** |
+
+*Chi tiết toàn bộ biểu đồ nằm trong thư mục [`visualization/`](visualization/).*
