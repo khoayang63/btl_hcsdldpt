@@ -23,6 +23,8 @@ test_binary_mask/
 # Large model cache / checkpoints
 .cache/
 checkpoints/
+*.pth
+db/*.pth
 
 # IDE & OS
 .vscode/

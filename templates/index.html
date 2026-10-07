@@ -603,13 +603,14 @@
         <div class="mode-select-wrap">
             <div class="panel-title" style="margin-bottom:8px;"><span class="dot" style="background:var(--accent)"></span> Tiêu chí truy vấn</div>
             <select class="mode-dropdown" id="searchModeSelect" onchange="onModeChange(this.value)">
-                <option value="balanced" selected>🌿 Tổng hợp Handcrafted (Hình dạng 50% + Gân 30% + Màu 20%)</option>
-                <option value="deep_cnn">🧠 Deep CNN Embedding (ResNet-18 512D) [Độ chính xác cao 87.5%]</option>
-                <option value="shape_only">📐 Chỉ theo Hình dạng (Shape 100%)</option>
-                <option value="color_only">🎨 Chỉ theo Màu sắc (Color 100%)</option>
-                <option value="texture_only">🧬 Chỉ theo Gân lá (Texture 100%)</option>
-                <option value="shape_texture">📐+🧬 Hình dạng & Gân lá (Không phụ thuộc màu)</option>
-                <option value="custom">⚙️ Tùy chỉnh trọng số (Custom Weights)...</option>
+                <option value="balanced" selected>🌿 Cấp 1: Handcrafted 25D (Hình dạng 50% + Gân 30% + Màu 20%)</option>
+                <option value="finetuned_cnn">🔥 Cấp 3: Fine-tuned ResNet-18 (Supervised 512D) [Độ chính xác 100%]</option>
+                <option value="deep_cnn">🧠 Cấp 2: Pretrained ResNet-18 (Zero-shot 512D) [Chính xác 87.5%]</option>
+                <option value="shape_only">📐 Cấp 1: Chỉ theo Hình dạng (Shape 100%)</option>
+                <option value="color_only">🎨 Cấp 1: Chỉ theo Màu sắc (Color 100%)</option>
+                <option value="texture_only">🧬 Cấp 1: Chỉ theo Gân lá (Texture 100%)</option>
+                <option value="shape_texture">📐+🧬 Cấp 1: Hình dạng & Gân lá (Không xét màu)</option>
+                <option value="custom">⚙️ Cấp 1: Tùy chỉnh Slider (Custom Weights)...</option>
             </select>
 
             <div class="custom-weights-box" id="customWeightsBox">
@@ -750,29 +751,47 @@
 
                 <!-- TAB: Clustering & PCA Evaluation -->
                 <div class="tab-content" id="tc-clustering">
-                    <div style="margin-bottom:16px; padding:14px 18px; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="margin-bottom:16px; padding:16px 20px; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                         <div>
-                            <div style="color:var(--accent); font-weight:700; font-size:0.95rem;">🧠 Đánh giá Phân cụm K-Means (k=8) & Giảm chiều PCA: Handcrafted 25D vs Deep CNN 512D</div>
-                            <div style="color:var(--text-dim); font-size:0.78rem; margin-top:4px;">Chỉ số định lượng: ARI: <b>0.361</b> (gấp gần 3 lần), NMI: <b>0.479</b>, Purity: <b>59.2%</b> vs 36.8%, Precision@5: <b>82.0%</b> vs 50.0%.</div>
+                            <div style="color:#2dd4bf; font-weight:700; font-size:1.05rem;">🧠 Đối chứng 3 Cấp độ: Handcrafted (25D) vs Pretrained ResNet-18 vs Fine-tuned ResNet-18 (512D)</div>
+                            <div style="color:var(--text-dim); font-size:0.8rem; margin-top:5px;">
+                                Đạt đỉnh cao: Retrieval Precision@5 đạt <b>100.0%</b> (mAP 100%), K-Means Purity đạt <b>99.92%</b> (ARI: 0.998), Val Acc đạt <b>99.58%</b>.
+                            </div>
                         </div>
-                        <a href="/visualization/README_VISUALIZATION.md" target="_blank" style="padding:6px 14px; background:var(--accent-dim); border:1px solid var(--accent); color:var(--accent); border-radius:8px; font-size:0.75rem; text-decoration:none; font-family:var(--font-mono); font-weight:600;">Xem báo cáo MD ↗</a>
+                        <div style="display:flex; gap:10px;">
+                            <a href="/visualization/09_pca_3d_interactive.html" target="_blank" style="padding:8px 16px; background:#0f766e; border:1px solid #2dd4bf; color:#ffffff; border-radius:8px; font-size:0.8rem; text-decoration:none; font-family:var(--font-mono); font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+                                🌌 Mở PCA 3D Tương tác (Xoay 360°) ↗
+                            </a>
+                            <a href="/visualization/README_VISUALIZATION.md" target="_blank" style="padding:8px 14px; background:var(--bg-deep); border:1px solid var(--border); color:var(--text-dim); border-radius:8px; font-size:0.8rem; text-decoration:none; font-family:var(--font-mono); font-weight:600;">
+                                Báo cáo MD ↗
+                            </a>
+                        </div>
                     </div>
+
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="vis-item">
+                            <img src="/visualization/08_benchmark_3_levels_comparison.png" alt="Benchmark 3 Levels Comparison" style="cursor:pointer;" onclick="window.open('/visualization/08_benchmark_3_levels_comparison.png')">
+                            <div class="caption">1) Biểu đồ đối chứng 3 Cấp độ (Handcrafted vs Pretrained vs Fine-tuned)</div>
+                        </div>
+                        <div class="vis-item">
+                            <img src="/visualization/09_pca_3d_view.png" alt="PCA 3D Feature Space" style="cursor:pointer;" onclick="window.open('/visualization/09_pca_3d_view.png')">
+                            <div class="caption">2) Không gian PCA 3D: Pretrained (tản mác) vs Fine-tuned (gom 8 cụm độc lập)</div>
+                        </div>
+                        <div class="vis-item">
+                            <img src="/visualization/07_training_curves.png" alt="Training Curves" style="cursor:pointer;" onclick="window.open('/visualization/07_training_curves.png')">
+                            <div class="caption">3) Tiến trình huấn luyện Fine-tuned ResNet-18 (Loss giảm & Val Acc đạt 99.58%)</div>
+                        </div>
+                        <div class="vis-item">
+                            <img src="/visualization/10_confusion_matrix_finetuned.png" alt="Validation Confusion Matrix" style="cursor:pointer;" onclick="window.open('/visualization/10_confusion_matrix_finetuned.png')">
+                            <div class="caption">4) Ma trận nhầm lẫn phân loại 8 loài trên tập Validation (239/240 ảnh đúng)</div>
+                        </div>
+                        <div class="vis-item">
                             <img src="/visualization/01_pca_2d_ground_truth_vs_kmeans.png" alt="PCA 2D Ground Truth vs KMeans" style="cursor:pointer;" onclick="window.open('/visualization/01_pca_2d_ground_truth_vs_kmeans.png')">
-                            <div class="caption">1) Không gian PCA 2D: Nhãn thật (Ground Truth) vs Cụm K-Means (k=8)</div>
+                            <div class="caption">5) Không gian PCA 2D: Nhãn thật (Ground Truth) vs Cụm K-Means</div>
                         </div>
                         <div class="vis-item">
                             <img src="/visualization/03_kmeans_confusion_purity_heatmap.png" alt="K-Means Confusion Heatmap" style="cursor:pointer;" onclick="window.open('/visualization/03_kmeans_confusion_purity_heatmap.png')">
-                            <div class="caption">2) Ma trận phân bố nhãn loài trong từng cụm K-Means (ResNet-18)</div>
-                        </div>
-                        <div class="vis-item">
-                            <img src="/visualization/04_handcrafted_vs_cnn_separation.png" alt="Handcrafted vs CNN PCA" style="cursor:pointer;" onclick="window.open('/visualization/04_handcrafted_vs_cnn_separation.png')">
-                            <div class="caption">3) Phân tách không gian: Handcrafted 25D vs Deep CNN Embedding 512D</div>
-                        </div>
-                        <div class="vis-item">
-                            <img src="/visualization/06_precision_at_k_comparison.png" alt="Precision Comparison" style="cursor:pointer;" onclick="window.open('/visualization/06_precision_at_k_comparison.png')">
-                            <div class="caption">4) So sánh Precision@5 giữa Handcrafted (50.0%) và Deep CNN (82.0%)</div>
+                            <div class="caption">6) Ma trận phân bố các loài trong từng cụm K-Means</div>
                         </div>
                     </div>
                 </div>
@@ -1032,8 +1051,11 @@ function renderAll(data) {
 
     // Update active criteria badge
     const badge = document.getElementById('activeCriteriaBadge');
-    if (I.search_mode === 'deep_cnn') {
-        badge.textContent = '🧠 Tiêu chí: Deep CNN (ResNet-18 512D)';
+    if (I.search_mode === 'finetuned_cnn') {
+        badge.textContent = '🔥 Tiêu chí: Fine-tuned ResNet-18 (512D) [Độ chính xác 100%]';
+        badge.style.color = '#10b981';
+    } else if (I.search_mode === 'deep_cnn') {
+        badge.textContent = '🧠 Tiêu chí: Pretrained ResNet-18 (Zero-shot 512D)';
         badge.style.color = 'var(--accent)';
     } else if (I.active_weights) {
         badge.style.color = 'var(--accent)';
@@ -1048,12 +1070,15 @@ function renderAll(data) {
     }
 
     // ── Top 5
+    const isFT = (I.search_mode === 'finetuned_cnn');
     const isCNN = (I.search_mode === 'deep_cnn');
     const g = document.getElementById('top5Grid'); g.innerHTML = '';
     data.results.forEach((r, idx) => {
-        const breakdownText = isCNN
-            ? `ResNet-18 · CosDist: ${r.total_dist.toFixed(3)}`
-            : `S ${r.dist_shape.toFixed(3)} · T ${r.dist_texture.toFixed(3)} · C ${r.dist_color.toFixed(3)}`;
+        const breakdownText = isFT
+            ? `Fine-tuned · CosDist: ${r.total_dist.toFixed(4)}`
+            : (isCNN
+                ? `Pretrained · CosDist: ${r.total_dist.toFixed(4)}`
+                : `S ${r.dist_shape.toFixed(3)} · T ${r.dist_texture.toFixed(3)} · C ${r.dist_color.toFixed(3)}`);
         g.innerHTML += `<div class="res-card" onclick="openCompareModal(${idx})" title="Nhấp để xem bảng so sánh chi tiết giữa lá này và lá truy vấn">
             <div class="thumb"><div class="res-badge">${r.rank}</div><img src="data:image/jpeg;base64,${r.image_base64}"></div>
             <div class="meta"><div class="cat">${r.category}</div><div class="sim">${r.similarity_pct.toFixed(1)}%</div>

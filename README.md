@@ -30,7 +30,9 @@ Hệ thống cho phép quản trị CSDL ảnh lá cây và tìm kiếm các ả
 hcsdlpt/
 ├── app.py                      # Server web demo (Flask)
 ├── extract_features.py         # Script trích xuất 25D vector & nạp CSDL SQLite
-├── extract_cnn_and_evaluate.py # Script trích xuất ResNet-18 512D, chạy PCA, K-Means & sinh biểu đồ
+├── extract_cnn_and_evaluate.py # Script trích xuất ResNet-18 512D (Pretrained), PCA 2D & K-Means
+├── train_leaf_model.py         # [CẤP 3] Huấn luyện Fine-tuned ResNet-18 (Validation Acc: 99.58%)
+├── benchmark_and_3d_pca.py     # [BENCHMARK] Đối chứng toàn diện 3 cấp độ & sinh PCA 3D
 ├── setup_dataset.py            # Script giải nén & phân loại dataset từ zip
 ├── requirements.txt            # Danh sách thư viện Python cần thiết
 ├── .gitignore                  # Loại bỏ file nặng/môi trường khỏi git
@@ -39,7 +41,7 @@ hcsdlpt/
 │   ├── database.py             # Quản trị SQLite (bảng categories, images, features)
 │   ├── feature_extractor.py    # Tích hợp BiRefNet_lite + Trích xuất 25D handcrafted feature
 │   ├── cnn_extractor.py        # Trích xuất Deep CNN Embeddings (ResNet-18 512D L2-norm)
-│   └── search_engine.py        # Thuật toán tìm kiếm Top-5 (Handcrafted CBIR & Deep CNN)
+│   └── search_engine.py        # Thuật toán tìm kiếm Top-5 (Handcrafted, Pretrained & Fine-tuned)
 │
 ├── visualization/              # Biểu đồ trực quan hóa & báo cáo đánh giá khoa học
 │   ├── 01_pca_2d_ground_truth_vs_kmeans.png
@@ -48,7 +50,12 @@ hcsdlpt/
 │   ├── 04_handcrafted_vs_cnn_separation.png
 │   ├── 05_retrieval_comparison_top5.png
 │   ├── 06_precision_at_k_comparison.png
-│   └── README_VISUALIZATION.md # Báo cáo chi tiết các chỉ số định lượng
+│   ├── 07_training_curves.png              # [MỚI] Đường cong huấn luyện Loss & Accuracy 15 epoch
+│   ├── 08_benchmark_3_levels_comparison.png# [MỚI] So sánh định lượng 3 Cấp độ
+│   ├── 09_pca_3d_view.png                  # [MỚI] Không gian đặc trưng PCA 3D (Pretrained vs Fine-tuned)
+│   ├── 09_pca_3d_interactive.html         # [MỚI] Trang HTML tương tác 3D xoay 360 độ (Plotly)
+│   ├── 10_confusion_matrix_finetuned.png   # [MỚI] Ma trận nhầm lẫn phân loại Validation (99.58%)
+│   └── README_VISUALIZATION.md             # Báo cáo chi tiết các chỉ số định lượng
 │
 ├── data/                       # Dữ liệu ảnh & metadata
 │   ├── dataset/                # 1200 ảnh trong CSDL (8 loài x 150 ảnh)
@@ -59,7 +66,8 @@ hcsdlpt/
 ├── db/                         # Cơ sở dữ liệu & Cache
 │   ├── leaf_database.db        # SQLite Database
 │   ├── feature_cache.npz       # Ma trận vector 25D chuẩn hóa
-│   └── cnn_feature_cache.npz   # Ma trận vector 512D CNN, PCA và K-Means clusters
+│   ├── cnn_feature_cache.npz   # Ma trận vector 512D Pretrained CNN & PCA 2D
+│   └── finetuned_feature_cache.npz # [MỚI] Ma trận vector 512D Fine-tuned CNN
 │
 ├── templates/                  # Giao diện web HTML (Flask template)
 │   └── index.html
@@ -157,29 +165,40 @@ Sau khi terminal hiển thị thông báo server hoạt động, mở trình duy
 
 ---
 
-## 📊 Bảng so sánh định lượng: Handcrafted 25D vs Deep CNN (ResNet-18)
+## 📊 Bảng so sánh định lượng: Đối chứng 3 Cấp độ
 
 Chạy script đánh giá độc lập:
 ```bash
-python extract_cnn_and_evaluate.py
+# Huấn luyện mô hình Cấp 3 (Fine-tuning 15 epoch trên GPU):
+python train_leaf_model.py
+
+# Đánh giá đối chứng toàn diện 3 cấp độ & sinh biểu đồ + trang 3D tương tác:
+python benchmark_and_3d_pca.py
 ```
 
 ### 1. Đánh giá chất lượng Phân cụm (Clustering Quality - K-Means $k=8$)
 
-| Chỉ số đánh giá | Ý nghĩa toán học | Handcrafted 25D | Deep CNN (ResNet-18 512D) | Đánh giá |
-| :--- | :--- | :---: | :---: | :--- |
-| **Silhouette Score (↑)** | Độ gắn kết trong cụm và cách biệt giữa các cụm `[-1, 1]` | **0.1043** | **0.0726** | Phản ánh cấu trúc không gian hình cầu L2 |
-| **Davies-Bouldin Index (↓)** | Tỉ lệ độ phân tán trong cụm so với khoảng cách cụm | **2.0530** | **3.0063** | Số chiều cao (512D) rải đều các loài |
-| **Adjusted Rand Index ARI (↑)** | Tương đồng giữa Cụm K-Means và Nhãn loài thật `[0, 1]` | **0.1272** | **0.3613** | **CNN vượt trội gấp gần 3 lần** |
-| **Normalized Mutual Info NMI (↑)**| Lượng thông tin tương hỗ chuẩn hóa giữa Cụm và Nhãn thật | **0.2221** | **0.4789** | **CNN phản ánh cấu trúc loài vượt trội** |
-| **Cluster Purity (↑)** | Độ thuần khiết của các cụm loài cây (%) | **36.8%** | **59.2%** | **CNN tăng thêm +22.4% độ thuần khiết** |
+| Chỉ số đánh giá | Ý nghĩa toán học | Cấp 1: Handcrafted 25D | Cấp 2: Pretrained 512D | Cấp 3: Fine-tuned 512D | Đánh giá học thuật |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **Cluster Purity (↑)** | Độ thuần khiết nhãn loài trong từng cụm (%) | **36.8%** | **59.2%** | **99.9%** | Fine-tuned đạt độ thuần khiết gần như tuyệt đối (+63.1%). |
+| **Adjusted Rand Index ARI (↑)** | Tương đồng giữa Cụm K-Means và Nhãn loài thật `[0, 1]` | **0.1272** | **0.3613** | **0.9981** | Cấu trúc cụm khớp nhãn sinh học thực tế gần như 1.0 tuyệt đối. |
+| **Normalized Mutual Info NMI (↑)**| Lượng thông tin tương hỗ chuẩn hóa giữa Cụm và Nhãn thật | **0.2221** | **0.4789** | **0.9976** | Phản ánh cấu trúc loài cây trồng thực tế rõ ràng vượt bậc. |
+| **Silhouette Score (↑)** | Độ cô đặc nội cụm và tách biệt giữa các cụm `[-1, 1]` | **0.1043** | **0.0726** | **0.4853** | Tăng vọt gấp 5 lần, các cụm cô đặc cực kỳ chặt chẽ. |
+| **Davies-Bouldin Index (↓)** | Tỉ lệ độ phân tán trong cụm so với khoảng cách cụm | **2.0530** | **3.0063** | **0.8629** | Chỉ số nhỏ nhất thể hiện các cụm cách ly rõ rệt nhất. |
 
-### 2. Đánh giá hiệu năng Truy vấn Tìm kiếm (Retrieval Performance trên 40 queries)
+### 2. Đánh giá hiệu năng Truy vấn Tìm kiếm (Retrieval Performance trên 40 test queries)
 
-| Tiêu chí | Handcrafted 25D (Color + Shape + Texture) | Deep CNN 512D (ResNet-18 Pretrained) | Cải thiện |
-| :--- | :---: | :---: | :---: |
-| **Precision@1** | **52.5%** | **87.5%** | **+35.0%** |
-| **Precision@3** | **53.3%** | **83.3%** | **+30.0%** |
-| **Precision@5** | **50.0%** | **82.0%** | **+32.0%** |
+| Tiêu chí | Cấp 1: Handcrafted 25D | Cấp 2: Pretrained ResNet-18 | Cấp 3: Fine-tuned ResNet-18 | Cải thiện Cấp 3 vs Cấp 1 |
+| :--- | :---: | :---: | :---: | :---: |
+| **Precision@1 (Top-1)** | **52.5%** | **87.5%** | **100.0%** | **+47.5%** 🚀 |
+| **Precision@3 (Top-3)** | **53.3%** | **83.3%** | **100.0%** | **+46.7%** 🚀 |
+| **Precision@5 (Top-5)** | **50.0%** | **82.0%** | **100.0%** | **+50.0%** 🚀 |
+| **mAP@5 (Mean Average Precision)** | **62.9%** | **91.0%** | **100.0%** | **+37.1%** 🚀 |
 
-*Chi tiết toàn bộ biểu đồ nằm trong thư mục [`visualization/`](visualization/).*
+---
+
+## 🌌 Trực quan hóa Không gian Vector Đặc trưng PCA 3D
+
+- **Hình ảnh tĩnh 3D:** [`visualization/09_pca_3d_view.png`](visualization/09_pca_3d_view.png) so sánh trực quan không gian đặc trưng 3D giữa Pretrained (tản mác) và Fine-tuned (gom thành 8 đảo độc lập).
+- **Trang web 3D tương tác xoay 360 độ:** Mở file [`visualization/09_pca_3d_interactive.html`](visualization/09_pca_3d_interactive.html) bằng bất kỳ trình duyệt nào để xoay tự do, phóng to thu nhỏ và rê chuột xem tọa độ từng chiếc lá.
+- Toàn bộ báo cáo phân tích chi tiết nằm trong [`visualization/README_VISUALIZATION.md`](visualization/README_VISUALIZATION.md).

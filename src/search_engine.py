@@ -165,6 +165,97 @@ class LeafSearchEngine:
         intermediate_info = self._build_intermediate_info(feat_res, orig_bgr, raw_q, norm_q)
         return results, intermediate_info
 
+    def search_finetuned(self, query_img_or_path, top_k=5):
+        """
+        Performs retrieval using Fine-tuned ResNet-18 (512D) embeddings + Cosine Similarity.
+        """
+        if not hasattr(self, 'ft_matrix') or self.ft_matrix is None:
+            ft_cache_path = os.path.join(PROJECT_ROOT, 'db', 'finetuned_feature_cache.npz')
+            if not os.path.exists(ft_cache_path):
+                raise FileNotFoundError("Chưa tìm thấy finetuned_feature_cache.npz. Vui lòng chạy benchmark_and_3d_pca.py trước.")
+            data = np.load(ft_cache_path, allow_pickle=True)
+            self.ft_matrix = data["embeddings"]
+
+        if not hasattr(self, 'ft_model') or self.ft_model is None:
+            import torch
+            import torch.nn as nn
+            from torchvision import models
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            ckpt_path = os.path.join(PROJECT_ROOT, "db", "finetuned_resnet18_leaf.pth")
+            model = models.resnet18(weights=None)
+            in_features = model.fc.in_features
+            model.fc = nn.Sequential(nn.Dropout(p=0.3), nn.Linear(in_features, 8))
+            checkpoint = torch.load(ckpt_path, map_location=device, weights_only=False)
+            model.load_state_dict(checkpoint['model_state_dict'])
+            model.fc = nn.Identity()
+            model.to(device)
+            model.eval()
+            self.ft_model = model
+            self.ft_device = device
+
+        import torch
+        from PIL import Image
+        from torchvision import transforms
+        tf = transforms.Compose([
+            transforms.Resize((256, 256)),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+
+        if isinstance(query_img_or_path, str):
+            p = query_img_or_path if os.path.isabs(query_img_or_path) else os.path.join(PROJECT_ROOT, query_img_or_path)
+            q_img = Image.open(p).convert("RGB")
+        else:
+            q_rgb = cv2.cvtColor(query_img_or_path, cv2.COLOR_BGR2RGB)
+            q_img = Image.fromarray(q_rgb)
+
+        inp = tf(q_img).unsqueeze(0).to(self.ft_device)
+        with torch.no_grad():
+            feat = self.ft_model(inp)
+            feat = feat / torch.clamp(torch.norm(feat, p=2, dim=1, keepdim=True), min=1e-12)
+            q_emb = feat.squeeze(0).cpu().numpy()
+
+        cos_sims = np.dot(self.ft_matrix, q_emb)
+        cos_dists = np.clip(1.0 - cos_sims, 0.0, 2.0)
+        top_indices = np.argsort(cos_dists)[:top_k]
+
+        feat_res = extract_features(query_img_or_path)
+        raw_q = feat_res["vector"]
+        norm_q = (raw_q - self.mean_vec) / self.std_vec
+
+        q_color = norm_q[self.idx_color]
+        q_shape = norm_q[self.idx_shape]
+        q_texture = norm_q[self.idx_texture]
+
+        results = []
+        for rank, idx in enumerate(top_indices, 1):
+            sim_pct = float(np.clip(cos_sims[idx] * 100.0, 0.0, 100.0))
+            d_shape = np.linalg.norm(self.norm_matrix[idx, self.idx_shape] - q_shape) / np.sqrt(11.0)
+            d_texture = np.linalg.norm(self.norm_matrix[idx, self.idx_texture] - q_texture) / np.sqrt(8.0)
+            d_color = np.linalg.norm(self.norm_matrix[idx, self.idx_color] - q_color) / np.sqrt(6.0)
+
+            results.append({
+                "rank": rank,
+                "image_id": int(self.image_ids[idx]),
+                "filename": str(self.filenames[idx]),
+                "filepath": str(self.filepaths[idx]).replace("\\", "/"),
+                "category": str(self.categories[idx]),
+                "similarity_pct": round(sim_pct, 2),
+                "total_dist": round(float(cos_dists[idx]), 4),
+                "dist_shape": round(float(d_shape), 4),
+                "dist_texture": round(float(d_texture), 4),
+                "dist_color": round(float(d_color), 4)
+            })
+
+        if isinstance(query_img_or_path, str):
+            orig_bgr = cv2.imread(query_img_or_path)
+        else:
+            orig_bgr = query_img_or_path.copy()
+
+        intermediate_info = self._build_intermediate_info(feat_res, orig_bgr, raw_q, norm_q)
+        return results, intermediate_info
+
     def _build_intermediate_info(self, feat_res, orig_bgr, raw_q, norm_q):
         # ==================== VISUALIZATIONS ====================
         mask = feat_res["mask"]

@@ -93,7 +93,11 @@ def search():
         weights = {"shape": 0.50, "texture": 0.30, "color": 0.20}
 
     # Run search
-    if mode == 'deep_cnn':
+    if mode == 'finetuned_cnn':
+        results, intermediate = engine.search_finetuned(query_path, top_k=5)
+        intermediate['active_weights'] = None
+        intermediate['search_mode'] = 'finetuned_cnn'
+    elif mode == 'deep_cnn':
         results, intermediate = engine.search_cnn(query_path, top_k=5)
         intermediate['active_weights'] = None
         intermediate['search_mode'] = 'deep_cnn'
