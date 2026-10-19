@@ -6,29 +6,58 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Large files & datasets
-LEAF.v2i.coco.zip
-*.zip
-*.tar.gz
+# All image formats (only push source code to GitHub)
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.tiff
+*.tif
+*.webp
+*.gif
+*.ico
+*.svg
 
-# Data directories (keep directory structure with .gitkeep if needed)
+# Dataset and image directories
+dataset/
+data/
 data/dataset/
 data/test_queries/
 static/uploads/*
 !static/uploads/.gitkeep
-
-# Binary mask test output
 test_binary_mask/
+visualization/*.png
+visualization/*.jpg
 
-# Large model cache / checkpoints
+# Temporary & test directories
+temp/
+test/
+
+# Large files, archives, models & caches
+LEAF.v2i.coco.zip
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Database & model weights / checkpoints
 .cache/
 checkpoints/
 *.pth
+*.pt
+*.onnx
+*.npz
+*.db
+*.sqlite
+*.sqlite3
+db/*.db
+db/*.npz
 db/*.pth
 
-# IDE & OS
+# IDE & OS files
 .vscode/
 .idea/
 *.swp
 .DS_Store
 Thumbs.db
+desktop.ini
