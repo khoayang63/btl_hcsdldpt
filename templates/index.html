@@ -449,6 +449,28 @@
         .diff-mid { background: rgba(245,158,11,0.15); color: var(--gold); }
         .diff-far { background: rgba(251,113,133,0.15); color: var(--rose); }
 
+        .view-btn {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .view-btn:hover {
+            color: var(--text);
+            border-color: var(--accent);
+        }
+        .view-btn.active {
+            background: rgba(45, 212, 191, 0.15);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
         .modal-chart-grid {
             display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px;
         }
@@ -669,6 +691,7 @@
                     <div class="tab" data-tab="shape" onclick="switchTab('shape', this)">Shape</div>
                     <div class="tab" data-tab="color" onclick="switchTab('color', this)">Color</div>
                     <div class="tab" data-tab="texture" onclick="switchTab('texture', this)">Texture</div>
+                    <div class="tab" data-tab="descriptors" onclick="switchTab('descriptors', this)">🧬 HOG & DAISY</div>
                     <div class="tab" data-tab="radar" onclick="switchTab('radar', this)">Radar</div>
                     <div class="tab" data-tab="distances" onclick="switchTab('distances', this)">Distances</div>
                     <div class="tab" data-tab="clustering" onclick="switchTab('clustering', this)">🧠 K-Means & PCA</div>
@@ -719,6 +742,41 @@
                         <div class="panel" style="padding: 16px;">
                             <div class="panel-title"><span class="dot" style="background:var(--violet)"></span> GLCM Texture (8D)</div>
                             <table class="feat-table" id="textureTable"></table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: Edge & Local Descriptors (HOG & DAISY) -->
+                <div class="tab-content" id="tc-descriptors">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <!-- HOG Column -->
+                        <div class="panel" style="padding: 16px;">
+                            <div class="panel-title" style="justify-content:space-between;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="dot" style="background:#f59e0b"></span> Histogram of Oriented Gradients (HOG)
+                                </div>
+                                <span style="font-family:var(--font-mono); font-size:0.75rem; color:#f59e0b; background:rgba(245,158,11,0.12); padding:2px 8px; border-radius:4px;">Mục 3.3.4 (1764D)</span>
+                            </div>
+                            <div class="vis-item" id="hogImgWrap" style="margin-bottom:12px;"></div>
+                            <table class="feat-table" id="hogTable"></table>
+                            <div style="font-size:0.75rem; color:var(--text-dim); margin-top:10px; line-height:1.5; background:var(--bg-deep); padding:10px; border-radius:8px; border:1px solid var(--border);">
+                                💡 <b>Nguyên lý HOG:</b> Thuật toán tính độ lớn và hướng vi sai đạo hàm cục bộ $(I_x, I_y)$, lượng tử hóa vào 9 bin góc [$0^\circ, 180^\circ$] trong các cell $8\times 8$ px và chuẩn hóa khối $2\times 2$ cells ($L2\text{-Hys}$). Bắt trọn mép viền răng cưa và hệ thống gân lá.
+                            </div>
+                        </div>
+
+                        <!-- DAISY Column -->
+                        <div class="panel" style="padding: 16px;">
+                            <div class="panel-title" style="justify-content:space-between;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="dot" style="background:#ec4899"></span> Dense DAISY Local Descriptor
+                                </div>
+                                <span style="font-family:var(--font-mono); font-size:0.75rem; color:#ec4899; background:rgba(236,72,153,0.12); padding:2px 8px; border-radius:4px;">Mục 3.3.5 (104D)</span>
+                            </div>
+                            <div class="vis-item" id="daisyImgWrap" style="margin-bottom:12px;"></div>
+                            <table class="feat-table" id="daisyTable"></table>
+                            <div style="font-size:0.75rem; color:var(--text-dim); margin-top:10px; line-height:1.5; background:var(--bg-deep); padding:10px; border-radius:8px; border:1px solid var(--border);">
+                                💡 <b>Nguyên lý DAISY:</b> Cấu trúc hình hoa cúc đối xứng đồng tâm với các vòng bán kính tăng dần, làm mịn cục bộ bằng hàm nhân Gaussian kết hợp biểu đồ gradient đa hướng. Mang tính bất biến cao với xoay, co giãn và biến dạng phi tuyến.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -818,6 +876,14 @@
         </div>
 
         <div id="modalContent" style="display:none;">
+            <!-- Bộ chuyển chế độ quan sát overlay giữa 2 lá -->
+            <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:18px; flex-wrap:wrap;">
+                <span style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; font-family:var(--font-mono); font-weight:600;">Chế độ quan sát đối đầu:</span>
+                <button type="button" class="view-btn active" id="btnViewShape" onclick="switchCompareView('shape')">📐 Khung Hình Học</button>
+                <button type="button" class="view-btn" id="btnViewHog" onclick="switchCompareView('hog')">🔥 Gradient HOG (1764D)</button>
+                <button type="button" class="view-btn" id="btnViewDaisy" onclick="switchCompareView('daisy')">🌸 Cấu Trúc DAISY (104D)</button>
+            </div>
+
             <!-- Hai lá đối đầu -->
             <div class="compare-cols">
                 <!-- Query Leaf -->
@@ -831,7 +897,7 @@
                         </div>
                         <div>
                             <img id="modalQueryShape" src="" alt="Query shape overlay">
-                            <div class="img-lbl">Khung hình học</div>
+                            <div class="img-lbl" id="modalQueryOverlayLbl">Khung hình học</div>
                         </div>
                     </div>
                     <div class="swatch-row" style="justify-content:center; margin-bottom:0;">
@@ -857,7 +923,7 @@
                         </div>
                         <div>
                             <img id="modalMatchShape" src="" alt="Match shape overlay">
-                            <div class="img-lbl">Khung hình học</div>
+                            <div class="img-lbl" id="modalMatchOverlayLbl">Khung hình học</div>
                         </div>
                     </div>
                     <div class="swatch-row" style="justify-content:center; margin-bottom:0;">
@@ -1129,6 +1195,39 @@ function renderAll(data) {
         ['Gray Std', feat.texture.gray_std.toFixed(2)]
     ]);
 
+    // ── HOG & DAISY tab (Edge & Local Descriptors)
+    if (I.hog_overlay_base64) {
+        document.getElementById('hogImgWrap').innerHTML = `<img src="data:image/png;base64,${I.hog_overlay_base64}"><div class="caption">HOG Gradient Field (Inferno) — 9 Bins, 8×8 Cells, 2×2 Blocks</div>`;
+    }
+    if (I.hog_stats) {
+        fillFeatTable('hogTable', [
+            ['Vector Dimension', `${I.hog_stats.dim} chiều`],
+            ['Orientations (Bins)', `${I.hog_stats.orientations} bins [0°, 180°]`],
+            ['Pixels per Cell', I.hog_stats.cells],
+            ['Cells per Block', I.hog_stats.blocks],
+            ['Gradient Mean', I.hog_stats.mean.toFixed(4)],
+            ['Gradient Std', I.hog_stats.std.toFixed(4)],
+            ['Gradient Max', I.hog_stats.max.toFixed(4)],
+            ['Gradient Energy', I.hog_stats.energy.toFixed(4)]
+        ]);
+    }
+
+    if (I.daisy_overlay_base64) {
+        document.getElementById('daisyImgWrap').innerHTML = `<img src="data:image/png;base64,${I.daisy_overlay_base64}"><div class="caption">DAISY Concentric Descriptors — 2 Rings, 6 Histograms, 8 Orientations</div>`;
+    }
+    if (I.daisy_stats) {
+        fillFeatTable('daisyTable', [
+            ['Vector Dimension', `${I.daisy_stats.dim} chiều (Dense Spatial Pool)`],
+            ['Concentric Rings', `${I.daisy_stats.rings} vòng tròn đồng tâm`],
+            ['Histograms per Ring', `${I.daisy_stats.histograms} bộ biểu đồ`],
+            ['Gradient Orientations', `${I.daisy_stats.orientations} hướng gradient`],
+            ['Descriptor Mean', I.daisy_stats.mean.toFixed(4)],
+            ['Descriptor Std', I.daisy_stats.std.toFixed(4)],
+            ['Descriptor Max', I.daisy_stats.max.toFixed(4)],
+            ['Descriptor Energy', I.daisy_stats.energy.toFixed(4)]
+        ]);
+    }
+
     // ── Radar tab
     renderRadar(I.radar);
     renderVectorBar(I.raw_vector, I.feature_names);
@@ -1147,7 +1246,7 @@ function renderAll(data) {
 }
 
 function switchTabTo(name) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.textContent.trim().toLowerCase().startsWith(name.slice(0,3))));
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.getAttribute('data-tab') === name));
     document.querySelectorAll('.tab-content').forEach(t => t.classList.toggle('active', t.id === 'tc-' + name));
 }
 
@@ -1216,6 +1315,42 @@ function renderVectorBar(vec, names) {
 }
 
 /* ─── MODAL SO SÁNH CHI TIẾT ─── */
+let currentCompareQueryInter = null;
+let currentCompareMatchData = null;
+let currentCompareView = 'shape';
+
+function switchCompareView(viewMode) {
+    currentCompareView = viewMode;
+    ['Shape', 'Hog', 'Daisy'].forEach(k => {
+        const btn = document.getElementById('btnView' + k);
+        if (btn) btn.classList.toggle('active', k.toLowerCase() === viewMode);
+    });
+
+    if (!currentCompareQueryInter || !currentCompareMatchData) return;
+
+    const qImg = document.getElementById('modalQueryShape');
+    const mImg = document.getElementById('modalMatchShape');
+    const qLbl = document.getElementById('modalQueryOverlayLbl');
+    const mLbl = document.getElementById('modalMatchOverlayLbl');
+
+    if (viewMode === 'shape') {
+        qImg.src = 'data:image/png;base64,' + currentCompareQueryInter.shape_overlay_base64;
+        mImg.src = 'data:image/png;base64,' + currentCompareMatchData.shape_overlay_base64;
+        if (qLbl) qLbl.textContent = 'Khung hình học & Đường bao';
+        if (mLbl) mLbl.textContent = 'Khung hình học & Đường bao';
+    } else if (viewMode === 'hog') {
+        qImg.src = 'data:image/png;base64,' + (currentCompareQueryInter.hog_overlay_base64 || currentCompareQueryInter.shape_overlay_base64);
+        mImg.src = 'data:image/png;base64,' + (currentCompareMatchData.hog_overlay_base64 || currentCompareMatchData.shape_overlay_base64);
+        if (qLbl) qLbl.textContent = 'Gradient mép lá HOG (1764D)';
+        if (mLbl) mLbl.textContent = 'Gradient mép lá HOG (1764D)';
+    } else if (viewMode === 'daisy') {
+        qImg.src = 'data:image/png;base64,' + (currentCompareQueryInter.daisy_overlay_base64 || currentCompareQueryInter.shape_overlay_base64);
+        mImg.src = 'data:image/png;base64,' + (currentCompareMatchData.daisy_overlay_base64 || currentCompareMatchData.shape_overlay_base64);
+        if (qLbl) qLbl.textContent = 'Bộ mô tả cục bộ DAISY (104D)';
+        if (mLbl) mLbl.textContent = 'Bộ mô tả cục bộ DAISY (104D)';
+    }
+}
+
 function closeCompareModal() {
     const modal = document.getElementById('compareModal');
     modal.classList.remove('open');
@@ -1254,11 +1389,13 @@ async function openCompareModal(rankIdx) {
 function renderCompareModalContent(match, queryInter, matchData) {
     document.getElementById('modalContent').style.display = 'block';
 
+    currentCompareQueryInter = queryInter;
+    currentCompareMatchData = matchData;
+
     // 1. Query info
     const queryName = selectedSample ? selectedSample.replace('query_', '').split('_')[0] : (selectedFile ? selectedFile.name : 'Query Leaf');
     document.getElementById('modalQueryName').textContent = queryName.toUpperCase();
     document.getElementById('modalQueryImg').src = 'data:image/jpeg;base64,' + lastSearchData.query_image;
-    document.getElementById('modalQueryShape').src = 'data:image/png;base64,' + queryInter.shape_overlay_base64;
     document.getElementById('modalQuerySwatch').style.backgroundColor = queryInter.color_swatch_hex;
     document.getElementById('modalQueryHex').textContent = queryInter.color_swatch_hex;
 
@@ -1266,9 +1403,11 @@ function renderCompareModalContent(match, queryInter, matchData) {
     document.getElementById('modalMatchRank').textContent = `Hạng #${match.rank} trong CSDL (${match.similarity_pct.toFixed(1)}%)`;
     document.getElementById('modalMatchName').textContent = match.category.toUpperCase() + ' (' + match.filename.substring(0, 16) + '...)';
     document.getElementById('modalMatchImg').src = 'data:image/jpeg;base64,' + match.image_base64;
-    document.getElementById('modalMatchShape').src = 'data:image/png;base64,' + matchData.shape_overlay_base64;
     document.getElementById('modalMatchSwatch').style.backgroundColor = matchData.color_swatch_hex;
     document.getElementById('modalMatchHex').textContent = matchData.color_swatch_hex;
+
+    // Reset default view to shape
+    switchCompareView('shape');
 
     // 3. Summary stats
     document.getElementById('modalSimPct').textContent = match.similarity_pct.toFixed(2) + '%';
@@ -1359,7 +1498,13 @@ function renderCompareModalContent(match, queryInter, matchData) {
         { group: '🧬 Gân lá', name: 'GLCM Correlation (Tương quan điểm)', q: qF.texture.glcm_correlation, m: mF.texture.glcm_correlation, maxRef: 1.0 },
         { group: '🧬 Gân lá', name: 'GLCM ASM (Angular Second Moment)', q: qF.texture.glcm_asm, m: mF.texture.glcm_asm, maxRef: 0.5 },
         { group: '🧬 Gân lá', name: 'Gray Mean (Trung bình mức xám)', q: qF.texture.gray_mean, m: mF.texture.gray_mean, maxRef: 255.0 },
-        { group: '🧬 Gân lá', name: 'Gray Std (Độ lệch chuẩn mức xám)', q: qF.texture.gray_std, m: mF.texture.gray_std, maxRef: 80.0 }
+        { group: '🧬 Gân lá', name: 'Gray Std (Độ lệch chuẩn mức xám)', q: qF.texture.gray_std, m: mF.texture.gray_std, maxRef: 80.0 },
+
+        // EDGE & LOCAL DESCRIPTORS (HOG & DAISY)
+        { group: '⚡ HOG (Mục 3.3.4)', name: 'HOG Gradient Mean (Độ dốc vi sai)', q: (queryInter.hog_stats ? queryInter.hog_stats.mean : 0), m: (matchData.hog_stats ? matchData.hog_stats.mean : 0), maxRef: 0.2 },
+        { group: '⚡ HOG (Mục 3.3.4)', name: 'HOG Gradient Energy (Năng lượng biên)', q: (queryInter.hog_stats ? queryInter.hog_stats.energy : 0), m: (matchData.hog_stats ? matchData.hog_stats.energy : 0), maxRef: 50.0 },
+        { group: '🌸 DAISY (Mục 3.3.5)', name: 'DAISY Descriptor Mean (Mô tả hoa cúc)', q: (queryInter.daisy_stats ? queryInter.daisy_stats.mean : 0), m: (matchData.daisy_stats ? matchData.daisy_stats.mean : 0), maxRef: 0.1 },
+        { group: '🌸 DAISY (Mục 3.3.5)', name: 'DAISY Descriptor Energy (Năng lượng cục bộ)', q: (queryInter.daisy_stats ? queryInter.daisy_stats.energy : 0), m: (matchData.daisy_stats ? matchData.daisy_stats.energy : 0), maxRef: 2.0 }
     ];
 
     rows.forEach(r => {

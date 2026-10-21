@@ -306,6 +306,45 @@ class LeafSearchEngine:
         edges = cv2.Canny(gray_leaf, 50, 150)
         vis_edges = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
 
+        # --- VIS 8 & 9: HOG & DAISY Descriptors ---
+        from skimage.feature import hog, daisy
+        gray_256 = cv2.resize(gray_leaf if np.count_nonzero(mask) > 100 else gray_full, (256, 256))
+
+        # HOG Visualization (cells 16x16 on 256x256, 9 orientations)
+        _, hog_img = hog(gray_256, orientations=9, pixels_per_cell=(16, 16), cells_per_block=(2, 2), visualize=True)
+        hog_norm = (hog_img / (hog_img.max() + 1e-10) * 255).astype(np.uint8)
+        vis_hog = cv2.applyColorMap(hog_norm, cv2.COLORMAP_INFERNO)
+
+        # Standard HOG 1764D vector stats (from 64x64 standard)
+        gray_64 = cv2.resize(gray_leaf if np.count_nonzero(mask) > 100 else gray_full, (64, 64))
+        hog_vec = hog(gray_64, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2))
+        hog_stats = {
+            "dim": int(len(hog_vec)),
+            "mean": round(float(np.mean(hog_vec)), 4),
+            "std": round(float(np.std(hog_vec)), 4),
+            "max": round(float(np.max(hog_vec)), 4),
+            "energy": round(float(np.sum(hog_vec ** 2)), 4),
+            "orientations": 9,
+            "cells": "8×8 px",
+            "blocks": "2×2 cells"
+        }
+
+        # DAISY Visualization (step=32, radius=15, rings=2, histograms=6, orientations=8)
+        daisy_descs, daisy_img = daisy(gray_256, step=32, radius=15, rings=2, histograms=6, orientations=8, visualize=True)
+        daisy_vis = (np.clip(daisy_img, 0.0, 1.0) * 255).astype(np.uint8)
+        vis_daisy = cv2.cvtColor(daisy_vis, cv2.COLOR_RGB2BGR)
+        avg_daisy = np.mean(daisy_descs.reshape(-1, daisy_descs.shape[-1]), axis=0)
+        daisy_stats = {
+            "dim": int(len(avg_daisy)),
+            "mean": round(float(np.mean(avg_daisy)), 4),
+            "std": round(float(np.std(avg_daisy)), 4),
+            "max": round(float(np.max(avg_daisy)), 4),
+            "energy": round(float(np.sum(avg_daisy ** 2)), 4),
+            "rings": 2,
+            "histograms": 6,
+            "orientations": 8
+        }
+
         # --- Radar chart data (normalized 0-1 for display) ---
         feat_d = feat_res["features_dict"]
         radar_data = {
@@ -348,6 +387,10 @@ class LeafSearchEngine:
             "hue_heatmap_base64": encode_img(vis_hue),
             "glcm_heatmap_base64": encode_img(glcm_colored),
             "edge_map_base64": encode_img(vis_edges),
+            "hog_overlay_base64": encode_img(vis_hog),
+            "daisy_overlay_base64": encode_img(vis_daisy),
+            "hog_stats": hog_stats,
+            "daisy_stats": daisy_stats,
             "hist_h": hist_h,
             "hist_s": hist_s,
             "hist_v": hist_v,

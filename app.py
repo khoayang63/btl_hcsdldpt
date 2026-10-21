@@ -186,12 +186,51 @@ def compare():
             cv2.ellipse(vis_shape, cv2.fitEllipse(contour), (255, 0, 255), 2)
         _, shape_buf = cv2.imencode('.png', vis_shape)
 
+        # Generate HOG & DAISY overlays for matched leaf
+        from skimage.feature import hog, daisy
+        gray_full = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        gray_leaf = cv2.bitwise_and(gray_full, gray_full, mask=mask)
+        gray_256 = cv2.resize(gray_leaf if np.count_nonzero(mask) > 100 else gray_full, (256, 256))
+
+        _, hog_img = hog(gray_256, orientations=9, pixels_per_cell=(16, 16), cells_per_block=(2, 2), visualize=True)
+        hog_norm = (hog_img / (hog_img.max() + 1e-10) * 255).astype(np.uint8)
+        vis_hog = cv2.applyColorMap(hog_norm, cv2.COLORMAP_INFERNO)
+        _, hog_buf = cv2.imencode('.png', vis_hog)
+
+        daisy_descs, daisy_img = daisy(gray_256, step=32, radius=15, rings=2, histograms=6, orientations=8, visualize=True)
+        daisy_vis = (np.clip(daisy_img, 0.0, 1.0) * 255).astype(np.uint8)
+        vis_daisy = cv2.cvtColor(daisy_vis, cv2.COLOR_RGB2BGR)
+        _, daisy_buf = cv2.imencode('.png', vis_daisy)
+
+        gray_64 = cv2.resize(gray_leaf if np.count_nonzero(mask) > 100 else gray_full, (64, 64))
+        hog_vec = hog(gray_64, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2))
+        avg_daisy = np.mean(daisy_descs.reshape(-1, daisy_descs.shape[-1]), axis=0)
+
+        hog_stats = {
+            "dim": int(len(hog_vec)),
+            "mean": round(float(np.mean(hog_vec)), 4),
+            "std": round(float(np.std(hog_vec)), 4),
+            "max": round(float(np.max(hog_vec)), 4),
+            "energy": round(float(np.sum(hog_vec ** 2)), 4)
+        }
+        daisy_stats = {
+            "dim": int(len(avg_daisy)),
+            "mean": round(float(np.mean(avg_daisy)), 4),
+            "std": round(float(np.std(avg_daisy)), 4),
+            "max": round(float(np.max(avg_daisy)), 4),
+            "energy": round(float(np.sum(avg_daisy ** 2)), 4)
+        }
+
         return jsonify({
             'features': feat,
             'radar_values': radar_values,
             'color_swatch_hex': swatch_hex,
             'raw_vector': [round(float(x), 4) for x in res['vector']],
-            'shape_overlay_base64': base64.b64encode(shape_buf).decode('utf-8')
+            'shape_overlay_base64': base64.b64encode(shape_buf).decode('utf-8'),
+            'hog_overlay_base64': base64.b64encode(hog_buf).decode('utf-8'),
+            'daisy_overlay_base64': base64.b64encode(daisy_buf).decode('utf-8'),
+            'hog_stats': hog_stats,
+            'daisy_stats': daisy_stats
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
